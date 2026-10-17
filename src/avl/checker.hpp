@@ -4,15 +4,18 @@
 #include <ctime>
 
 #include <algorithm>
+#include <functional>
 #include <random>
 #include <vector>
 
+#include <common_operations.hpp>
 #include "avl.hpp"
 
-namespace my_tree_impl {
+namespace tree_check {
+namespace avl {
 
 template<typename Key>
-std::int64_t GetAndVerifyHeight(const my_tree::avl_node_t<Key>* node) noexcept {
+std::int64_t GetAndVerifyHeight(const trees::avl::avl_node_t<Key>* node) noexcept {
   if(node == nullptr) {
     return 0;
   }
@@ -24,7 +27,7 @@ std::int64_t GetAndVerifyHeight(const my_tree::avl_node_t<Key>* node) noexcept {
 }
 
 template<typename Key>
-void VerifyParents(const my_tree::avl_node_t<Key>* node) noexcept {
+void VerifyParents(const trees::avl::avl_node_t<Key>* node) noexcept {
   if(node == nullptr) {
     return;
   }
@@ -43,7 +46,7 @@ std::pair<Key, Key> MergeRanges(
 }
 
 template<typename Key>
-std::pair<Key, Key> VerifyBst(const my_tree::avl_node_t<Key>* node) noexcept {
+std::pair<Key, Key> VerifyBst(const trees::avl::avl_node_t<Key>* node) noexcept {
   assert(node != nullptr);
   std::pair<Key, Key> curr_range{node->key, node->key};
   if(node->left != nullptr) {
@@ -56,36 +59,38 @@ std::pair<Key, Key> VerifyBst(const my_tree::avl_node_t<Key>* node) noexcept {
   }
   return curr_range;
 }
-} // namespace my_tree_impl
 
-namespace my_tree {
 
-template<typename Key>
-void Verify(const avl_tree_t<Key>& tr) noexcept {
-  my_tree_impl::GetAndVerifyHeight(tr.root);
+template<typename Key, typename Compare>
+void Verify(const trees::avl::avl_tree_t<Key, Compare>& tr) noexcept {
+  GetAndVerifyHeight(tr.root);
   if(tr.root == nullptr) {
     return;
   }
-  my_tree_impl::VerifyParents(tr.root->left);
-  my_tree_impl::VerifyParents(tr.root->right);
+  VerifyParents(tr.root->left);
+  VerifyParents(tr.root->right);
   assert(tr.root->parent == nullptr);
-  my_tree_impl::VerifyBst(tr.root);
+  VerifyBst(tr.root);
 }
 
+using test_key_type = int;
+using test_compare = std::less<int>;
+using test_tree_type = trees::avl::avl_tree_t<test_key_type, test_compare>;
+
 void InsertExample1() noexcept {
-  my_tree::avl_tree_t<int> tr;
+  test_tree_type tr;
   Verify(tr);
-  Insert(tr, 45);
+  trees::Insert(tr, 45);
   Verify(tr);
-  Insert(tr, 1);
+  trees::Insert(tr, 1);
   Verify(tr);
-  Insert(tr, 32);
+  trees::Insert(tr, 32);
   Verify(tr);
-  Insert(tr, 2);
+  trees::Insert(tr, 2);
   Verify(tr);
-  Insert(tr, 145);
+  trees::Insert(tr, 145);
   Verify(tr);
-  Destroy(tr);
+  trees::Destroy(tr);
 }
 
 void VerifyInsertRandom() noexcept {
@@ -94,37 +99,37 @@ void VerifyInsertRandom() noexcept {
     static_cast<unsigned>(std::rand()) % max_tests);
   for(unsigned i = 0U; i < curr_tests; ++i) {
     unsigned curr_queries = 500 + (static_cast<unsigned>(std::rand()) % 200);
-    my_tree::avl_tree_t<int> tr;
+    test_tree_type tr;
     for(unsigned j = 0U; j < curr_queries; ++j) {
       Verify(tr);
       int num = std::rand();
-      Insert(tr, num);
+      trees::Insert(tr, num);
       Verify(tr);
     }
-    Destroy(tr);
+    trees::Destroy(tr);
   }
 }
 
 void EraseExample1() noexcept {
-  my_tree::avl_tree_t<int> tr;
+  test_tree_type tr;
   Verify(tr);
-  Insert(tr, 45);
+  trees::Insert(tr, 45);
   Verify(tr);
-  Insert(tr, 1);
+  trees::Insert(tr, 1);
   Verify(tr);
-  Insert(tr, 32);
+  trees::Insert(tr, 32);
   Verify(tr);
-  Insert(tr, 2);
+  trees::Insert(tr, 2);
   Verify(tr);
-  Insert(tr, 145);
+  trees::Insert(tr, 145);
   Verify(tr);
-  Erase(tr, 32);
+  trees::Erase(tr, 32);
   Verify(tr);
-  Erase(tr, 145);
+  trees::Erase(tr, 145);
   Verify(tr);
-  Erase(tr, 2);
+  trees::Erase(tr, 2);
   Verify(tr);
-  Destroy(tr);
+  trees::Destroy(tr);
 }
 
 void VerifyEraseRandom() noexcept {
@@ -135,12 +140,12 @@ void VerifyEraseRandom() noexcept {
   std::mt19937 generator(rd());
   for(unsigned i = 0U; i < curr_tests; ++i) {
     unsigned curr_queries = 100 + (static_cast<unsigned>(std::rand()) % 100);
-    my_tree::avl_tree_t<int> tr;
+    test_tree_type tr;
     std::vector<int> numbers;
     while (curr_queries) {
       int num = std::rand();
       Verify(tr);
-      auto [node, was_inserted] = Insert(tr, num);
+      auto [node, was_inserted] = trees::Insert(tr, num);
       Verify(tr);
       if(was_inserted) {
         numbers.push_back(num);
@@ -151,10 +156,10 @@ void VerifyEraseRandom() noexcept {
     std::shuffle(numbers.begin(), numbers.end(), generator);
     for(std::size_t j = 0; j < numbers.size(); ++j) {
       Verify(tr);
-      Erase(tr, numbers[j]);
+      trees::Erase(tr, numbers[j]);
       Verify(tr);
     }
-    Destroy(tr);
+    trees::Destroy(tr);
   }
 }
 
@@ -165,4 +170,5 @@ void VerifyAllCases() noexcept {
   InsertExample1();
   VerifyInsertRandom();
 }
-} // namespace my_tree
+} // namespace avl
+} // namespace tree_check

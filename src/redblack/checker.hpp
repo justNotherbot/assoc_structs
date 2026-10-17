@@ -6,11 +6,16 @@
 #include <ctime>
 
 #include <algorithm>
+#include <functional>
 #include <random>
 #include <utility>
 #include <vector>
 
+#include <common_operations.hpp>
 #include "rb_tree.hpp"
+
+namespace tree_check {
+namespace redblack {
 
 template<typename Key>
 std::pair<Key, Key> MergeSegments(
@@ -21,7 +26,7 @@ std::pair<Key, Key> MergeSegments(
 }
 
 template<typename Key>
-std::pair<Key, Key> GetRange(rb_node_t<Key>* node) noexcept {
+std::pair<Key, Key> GetRange(trees::redblack::rb_node_t<Key>* node) noexcept {
   assert(node != nullptr);
   std::pair<Key, Key> res{node->key, node->key};
   if(node->left != nullptr) {
@@ -38,7 +43,7 @@ std::pair<Key, Key> GetRange(rb_node_t<Key>* node) noexcept {
 }
 
 template<typename Key>
-std::size_t GetBlackHeight(rb_node_t<Key>* node) noexcept {
+std::size_t GetBlackHeight(trees::redblack::rb_node_t<Key>* node) noexcept {
   assert(node != nullptr);
   std::size_t cnt_l = 0;
   std::size_t cnt_r = 0;
@@ -53,7 +58,8 @@ std::size_t GetBlackHeight(rb_node_t<Key>* node) noexcept {
 }
 
 template<typename Key>
-void CheckParents(rb_node_t<Key>* node, rb_node_t<Key>* root) noexcept {
+void CheckParents(trees::redblack::rb_node_t<Key>* node, 
+  trees::redblack::rb_node_t<Key>* root) noexcept {
   if(node == nullptr) {
     return;
   }
@@ -67,8 +73,8 @@ void CheckParents(rb_node_t<Key>* node, rb_node_t<Key>* root) noexcept {
   CheckParents(node->right, root);
 }
 
-template<typename Key>
-void Verify(const rb_tree_t<Key>& tr) noexcept {
+template<typename Key, typename Compare>
+void Verify(const trees::redblack::rb_tree_t<Key, Compare>& tr) noexcept {
   if(tr.root == nullptr) {
     return;
   }
@@ -78,22 +84,27 @@ void Verify(const rb_tree_t<Key>& tr) noexcept {
   CheckParents(tr.root, tr.root);
 }
 
-using test_type = int;
+using test_key_type = int;
+using test_compare_type = std::less<int>;
+using test_type = trees::redblack::rb_tree_t<test_key_type, test_compare_type>;
+using test_node_type = trees::redblack::rb_node_t<test_key_type>;
 
 void VerifyExample1() noexcept {
-  rb_tree_t<test_type> rb_tree;
-  rb_node_t<test_type>* node = new rb_node_t<test_type>;
+  namespace rb = trees::redblack;
+  test_type rb_tree;
+  test_node_type* node = new test_node_type;
   node->key = 0;
   rb_tree.root = node;
   Verify(rb_tree);
-  Destroy(rb_tree);
+  trees::Destroy(rb_tree);
 }
 
 void VerifyExample2() noexcept {
-  rb_tree_t<test_type> rb_tree;
-  rb_node_t<test_type>* node1 = new rb_node_t<test_type>;
-  rb_node_t<test_type>* node2 = new rb_node_t<test_type>;
-  rb_node_t<test_type>* node3 = new rb_node_t<test_type>;
+  namespace rb = trees::redblack;
+  test_type rb_tree;
+  test_node_type* node1 = new test_node_type;
+  test_node_type* node2 = new test_node_type;
+  test_node_type* node3 = new test_node_type;
   node1->key = 1;
   node2->key = 2;
   node3->key = 3;
@@ -103,15 +114,16 @@ void VerifyExample2() noexcept {
   node3->parent = node2;
   rb_tree.root = node2;
   Verify(rb_tree);
-  Destroy(rb_tree);
+  trees::Destroy(rb_tree);
 }
 
 void VerifyExample3() noexcept {
-  rb_tree_t<test_type> rb_tree;
-  rb_node_t<test_type>* node1 = new rb_node_t<test_type>;
-  rb_node_t<test_type>* node2 = new rb_node_t<test_type>;
-  rb_node_t<test_type>* node5 = new rb_node_t<test_type>;
-  rb_node_t<test_type>* node6 = new rb_node_t<test_type>;
+  namespace rb = trees::redblack;
+  test_type rb_tree;
+  test_node_type* node1 = new test_node_type;
+  test_node_type* node2 = new test_node_type;
+  test_node_type* node5 = new test_node_type;
+  test_node_type* node6 = new test_node_type;
   node1->key = 1;
   node2->key = 2;
   node5->key = 5;
@@ -125,7 +137,7 @@ void VerifyExample3() noexcept {
   node1->parent = node5;
   rb_tree.root = node5;
   Verify(rb_tree);
-  Destroy(rb_tree);
+  trees::Destroy(rb_tree);
 }
 
 void VerifyExamples() noexcept {
@@ -135,41 +147,43 @@ void VerifyExamples() noexcept {
 }
 
 void VerifyInsert() noexcept {
-  const unsigned max_tests = 100;
+  const unsigned max_tests = 1000;
   unsigned curr_tests = 100 + std::max(1U, 
     static_cast<unsigned>(std::rand()) % max_tests);
   for(unsigned i = 0U; i < curr_tests; ++i) {
     unsigned curr_queries = 500 + (static_cast<unsigned>(std::rand()) % 20);
-    rb_tree_t<int> tr;
+    namespace rb = trees::redblack;
+    test_type tr;
     for(unsigned j = 0U; j < curr_queries; ++j) {
       Verify(tr);
-      Insert(tr, rand());
+      trees::Insert(tr, rand());
       Verify(tr);
     }
-    Destroy(tr);
+    trees::Destroy(tr);
   }
 }
 
 void EraseExample1() noexcept {
-  rb_tree_t<int> tr;
+  namespace rb = trees::redblack;
+  test_type tr;
   Verify(tr);
-  Insert(tr, 45);
+  trees::Insert(tr, 45);
   Verify(tr);
-  Insert(tr, 1);
+  trees::Insert(tr, 1);
   Verify(tr);
-  Insert(tr, 32);
+  trees::Insert(tr, 32);
   Verify(tr);
-  Insert(tr, 2);
+  trees::Insert(tr, 2);
   Verify(tr);
-  Insert(tr, 145);
+  trees::Insert(tr, 145);
   Verify(tr);
-  Erase(tr, 32);
+  trees::Erase(tr, 32);
   Verify(tr);
-  Erase(tr, 145);
+  trees::Erase(tr, 145);
   Verify(tr);
-  Erase(tr, 2);
+  trees::Erase(tr, 2);
   Verify(tr);
-  Destroy(tr);
+  trees::Destroy(tr);
 }
 
 void VerifyEraseRandom() noexcept {
@@ -180,12 +194,13 @@ void VerifyEraseRandom() noexcept {
   std::mt19937 generator(rd());
   for(unsigned i = 0U; i < curr_tests; ++i) {
     unsigned curr_queries = 100 + (static_cast<unsigned>(std::rand()) % 100);
-    rb_tree_t<int> tr;
+    namespace rb = trees::redblack;
+    test_type tr;
     std::vector<int> numbers;
     while (curr_queries) {
       int num = std::rand();
       Verify(tr);
-      auto [node, was_inserted] = Insert(tr, num);
+      auto [node, was_inserted] = trees::Insert(tr, num);
       Verify(tr);
       if(was_inserted) {
         numbers.push_back(num);
@@ -196,10 +211,10 @@ void VerifyEraseRandom() noexcept {
     std::shuffle(numbers.begin(), numbers.end(), generator);
     for(std::size_t j = 0; j < numbers.size(); ++j) {
       Verify(tr);
-      Erase(tr, numbers[j]);
+      trees::Erase(tr, numbers[j]);
       Verify(tr);
     }
-    Destroy(tr);
+    trees::Destroy(tr);
   }
 }
 
@@ -214,3 +229,5 @@ void VerifyAllCases() noexcept {
   VerifyInsert();
   VerifyErase();
 }
+} // namespace redblack
+} // namespace tree_check
