@@ -8,25 +8,28 @@
 namespace trees {
 namespace redblack {
 
-template <typename Key>
+template <typename Value>
 struct rb_node_t {
+  using value_type = Value;
+
   bool is_red = false;
-  Key key;
+  Value value;
   rb_node_t* parent = nullptr;
   rb_node_t* left = nullptr;
   rb_node_t* right = nullptr;
 };
 
-template <typename Key, typename Compare>
+template <typename Key, typename Value, typename Compare, typename Project>
 struct rb_tree_t {
   using key_type = Key;
-  using node_type = rb_node_t<Key>;
+  using value_type = Value;
+  using node_type = rb_node_t<value_type>;
   using compare_type = Compare;
-
-  struct tag_t {};
+  using projection_type = Project;
 
   node_type* root = nullptr;
   compare_type comparator;
+  projection_type projector;
 };
 } // namespace redblack
 } // namespace trees
@@ -36,17 +39,19 @@ namespace redblack {
 
 namespace rb_pub = trees::redblack;
 
-template <typename Key>
-bool CheckBlack(rb_pub::rb_node_t<Key>* node) noexcept {
+template <typename Value>
+bool CheckBlack(rb_pub::rb_node_t<Value>* node) noexcept {
   if (node == nullptr) {
     return true;
   }
   return !node->is_red;
 }
 
-template <typename Key, typename Compare>
-void ColorFixup(rb_pub::rb_node_t<Key>* node, 
-  rb_pub::rb_tree_t<Key, Compare>& tr) {
+template <typename Key, typename Value, typename Compare, typename Project>
+void ColorFixup(
+  trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project>>* node, 
+  rb_pub::rb_tree_t<Key, Value, Compare, Project>& tr) {
+  using node_type = trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project>>;
   if (!node->is_red) {
     return;
   }
@@ -62,14 +67,14 @@ void ColorFixup(rb_pub::rb_node_t<Key>* node,
     return;
   }
 
-  rb_pub::rb_node_t<Key>* np = node->parent;
-  rb_pub::rb_node_t<Key>* npp = node->parent->parent;
+  node_type* np = node->parent;
+  node_type* npp = node->parent->parent;
 
   bool is_complement = np != npp->left;
-  rb_pub::rb_node_t<Key>* rb_pub::rb_node_t<Key>::* left_ptr = 
-    tree_impl::RetrieveLinkFromNode<rb_pub::rb_node_t<Key>>(!is_complement);
-  rb_pub::rb_node_t<Key>* rb_pub::rb_node_t<Key>::* right_ptr = 
-    tree_impl::RetrieveLinkFromNode<rb_pub::rb_node_t<Key>>(is_complement);
+  node_type* node_type::* left_ptr = 
+    tree_impl::RetrieveLinkFromNode<node_type>(!is_complement);
+  node_type* node_type::* right_ptr = 
+    tree_impl::RetrieveLinkFromNode<node_type>(is_complement);
 
   if (!CheckBlack(npp->*right_ptr)) {
     npp->is_red = true;
@@ -77,7 +82,7 @@ void ColorFixup(rb_pub::rb_node_t<Key>* node,
     (npp->*right_ptr)->is_red = false;
     ColorFixup(npp, tr);
   } else {
-    rb_pub::rb_node_t<Key>* pivot = node;
+    node_type* pivot = node;
     if (node == node->parent->*left_ptr) {
       pivot = node->parent;
     } else {
@@ -89,34 +94,22 @@ void ColorFixup(rb_pub::rb_node_t<Key>* node,
   }
 }
 
-template <typename Key, typename Compare>
-rb_pub::rb_node_t<Key>* Find(rb_pub::rb_node_t<Key>* curr, const Key& key,
-  const Compare& compare) {
-  if (curr == nullptr || curr->key == key) {
-    return curr;
-  }
-  rb_pub::rb_node_t<Key>* prev = nullptr;
-  if (compare(key, curr->key)) {
-    return Find(curr->left, key, compare);
-  }
-  return Find(curr->right, key, compare);
-}
-
-template <typename Key, typename Compare>
-void BlackDelete(rb_pub::rb_tree_t<Key, Compare>& tr, 
-  rb_pub::rb_node_t<Key>* node) {
+template <typename Key, typename Value, typename Compare, typename Project>
+void BlackDelete(rb_pub::rb_tree_t<Key, Value, Compare, Project>& tr, 
+  trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project>>* node) {
+  using node_type = trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project>>;
   assert(!node->is_red);
-  rb_pub::rb_node_t<Key>* np = node->parent;
+  node_type* np = node->parent;
   if (np == nullptr) {
     return;
   }
   bool is_complement = np->left == node;
-  rb_pub::rb_node_t<Key>* rb_pub::rb_node_t<Key>::* left_ptr = 
-    tree_impl::RetrieveLinkFromNode<rb_pub::rb_node_t<Key>>(!is_complement);
-  rb_pub::rb_node_t<Key>* rb_pub::rb_node_t<Key>::* right_ptr =
-      tree_impl::RetrieveLinkFromNode<rb_pub::rb_node_t<Key>>(is_complement);
+  node_type* node_type::* left_ptr = 
+    tree_impl::RetrieveLinkFromNode<node_type>(!is_complement);
+  node_type* node_type::* right_ptr =
+      tree_impl::RetrieveLinkFromNode<node_type>(is_complement);
 
-  rb_pub::rb_node_t<Key>* npl = np->*left_ptr;
+  node_type* npl = np->*left_ptr;
   if (np->is_red) {
     if (!CheckBlack(npl->*left_ptr)) {
       tree_impl::RotateImpl(npl, tr.root, is_complement);
@@ -125,7 +118,7 @@ void BlackDelete(rb_pub::rb_tree_t<Key, Compare>& tr,
       (npl->*right_ptr)->is_red = false;
       return;
     } else if (!CheckBlack(npl->*right_ptr)) {
-      rb_pub::rb_node_t<Key>* pivot = npl->*right_ptr;
+      node_type* pivot = npl->*right_ptr;
       tree_impl::RotateImpl(pivot, tr.root, !is_complement);
       tree_impl::RotateImpl(pivot, tr.root, is_complement);
       pivot->is_red = true;
@@ -139,9 +132,9 @@ void BlackDelete(rb_pub::rb_tree_t<Key, Compare>& tr,
     }
   } else {
     if (npl->is_red) {
-      rb_pub::rb_node_t<Key>* node_c = npl->*right_ptr;
+      node_type* node_c = npl->*right_ptr;
       if (CheckBlack(node_c->*left_ptr) && !CheckBlack(node_c->*right_ptr)) {
-        rb_pub::rb_node_t<Key>* node_d = node_c->*right_ptr;
+        node_type* node_d = node_c->*right_ptr;
         tree_impl::RotateImpl(node_d, tr.root, !is_complement);
         (node_d->*left_ptr)->is_red = true;
         node_d->is_red = false;
@@ -168,7 +161,7 @@ void BlackDelete(rb_pub::rb_tree_t<Key, Compare>& tr,
         (npl->*left_ptr)->is_red = false;
         return;
       } else if (!CheckBlack(npl->*right_ptr)) {
-        rb_pub::rb_node_t<Key>* pivot = npl->*right_ptr;
+        node_type* pivot = npl->*right_ptr;
         tree_impl::RotateImpl(pivot, tr.root, !is_complement);
         tree_impl::RotateImpl(pivot, tr.root, is_complement);
         pivot->is_red = false;
@@ -181,9 +174,9 @@ void BlackDelete(rb_pub::rb_tree_t<Key, Compare>& tr,
   }
 }
 
-template<typename Key, typename Compare>
-void CutNodeAway(rb_pub::rb_tree_t<Key, Compare>& tr, 
-  rb_pub::rb_node_t<Key>* node) {
+template<typename Key, typename Value, typename Compare, typename Project>
+void CutNodeAway(rb_pub::rb_tree_t<Key, Value, Compare, Project>& tr, 
+  trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project>>* node) {
   if (node->parent == nullptr) {
     tr.root = nullptr;
     delete node;
@@ -201,19 +194,24 @@ void CutNodeAway(rb_pub::rb_tree_t<Key, Compare>& tr,
 
 namespace trees {
 
-template <typename Key, typename Compare>
-std::pair<redblack::rb_node_t<Key>*, bool> Insert(
-  redblack::rb_tree_t<Key, Compare>& tr, const Key& k) {
-  redblack::rb_node_t<Key>* closest = nullptr;
+template <typename Key, typename Value, typename Compare, typename Project>
+std::pair<
+  trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project>>*, bool> 
+  Insert(
+  redblack::rb_tree_t<Key, Value, Compare, Project>& tr, const Key& k, 
+  const Value& val) {
+  using node_type = 
+    trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project>>;
+  node_type* closest = nullptr;
   if (tr.root != nullptr) {
-    closest = tree_impl::GetClosestNode(tr.root, k, tr.comparator);
-    if (closest->key == k) {
+    closest = tree_impl::GetClosestNode(tr.root, k, tr.comparator, tr.projector);
+    if (tr.projector(closest->value) == k) {
       return {closest, false};
     }
   }
 
-  redblack::rb_node_t<Key>* new_node = new redblack::rb_node_t<Key>;
-  new_node->key = k;
+  node_type* new_node = new node_type;
+  new_node->value = val;
   if (tr.root == nullptr) {
     tr.root = new_node;
     return {new_node, true};
@@ -221,7 +219,7 @@ std::pair<redblack::rb_node_t<Key>*, bool> Insert(
   new_node->is_red = true;
   new_node->parent = closest;
 
-  if (tr.comparator(closest->key, k)) {
+  if (tr.comparator(tr.projector(closest->value), k)) {
     assert(closest->right == nullptr);
     closest->right = new_node;
   } else {
@@ -232,32 +230,34 @@ std::pair<redblack::rb_node_t<Key>*, bool> Insert(
   return {new_node, true};
 }
 
-template <typename Key, typename Compare>
-void Erase(redblack::rb_tree_t<Key, Compare>& tr, 
-  redblack::rb_node_t<Key>* node) {
+template <typename Key, typename Value, typename Compare, typename Project>
+void Erase(redblack::rb_tree_t<Key, Value, Compare, Project>& tr, 
+  trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project>>* node) {
+  using node_type = 
+    trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project>>;
   if (node == nullptr) {
     return;
   }
   if (node->left != nullptr && node->right != nullptr) {
-    redblack::rb_node_t<Key>* curr = node->right;
-    redblack::rb_node_t<Key>* prev = curr;
+    node_type* curr = node->right;
+    node_type* prev = curr;
     while (curr != nullptr) {
       prev = curr;
       curr = curr->left;
     }
-    node->key = prev->key;
+    node->value = prev->value;
     node = prev;
   }
   if (node->left != nullptr) {
     assert(!node->is_red);
-    node->key = node->left->key;
+    node->value = node->left->value;
     delete node->left;
     node->left = nullptr;
     return;
   }
   if (node->right != nullptr) {
     assert(!node->is_red);
-    node->key = node->right->key;
+    node->value = node->right->value;
     delete node->right;
     node->right = nullptr;
     return;

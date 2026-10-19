@@ -43,20 +43,20 @@ void RotateImpl(Node* node, Node*& root, bool left) {
   }
 }
 
-template<typename Node, typename Key, typename Compare>
+template<typename Node, typename Key, typename Compare, typename Project>
 Node* GetClosestNode(Node* node, const Key& key, 
-  const Compare& compare) noexcept {
+  const Compare& compare, const Project& project) noexcept {
   if(node == nullptr) {
     return nullptr;
   }
-  if(key == node->key) {
+  if(key == project(node->value)) {
     return node;
   }
   Node* res = nullptr;
-  if(compare(node->key, key)) {
-    res = GetClosestNode(node->right, key, compare);
+  if(compare(project(node->value), key)) {
+    res = GetClosestNode(node->right, key, compare, project);
   } else {
-    res = GetClosestNode(node->left, key, compare);
+    res = GetClosestNode(node->left, key, compare, project);
   }
   if(res == nullptr) {
     return node;
@@ -84,15 +84,36 @@ concept TreeType = requires(T a) {
   typename T::key_type;
   typename T::node_type;
   typename T::compare_type;
+  typename T::projection_type;
 
   {a.root} -> std::convertible_to<typename T::node_type*>;
   {a.comparator} -> std::convertible_to<typename T::compare_type>;
+  {a.projector} -> std::convertible_to<typename T::projection_type>;
 };
 } // namespace requirements
+
+template<requirements::TreeType Tree>
+using node_type_t = typename Tree::node_type;
 
 template<requirements::TreeType Tree>
 void Destroy(Tree& tree) {
   tree_impl::DestroyNode(tree.root);
   tree.root = nullptr;
 }
+
+template<typename T>
+class Identity {
+public:
+  T operator()(const T& val) const noexcept {
+    return val;
+  }
+};
+
+template<typename T, typename U>
+class PairFirst {
+public:
+  T operator()(const std::pair<T, U>& val) const noexcept {
+    return val.first;
+  }
+};
 } // namespace trees 
