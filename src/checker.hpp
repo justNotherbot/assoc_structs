@@ -75,7 +75,6 @@ public:
       static_cast<unsigned>(std::rand()) % max_tests);
     for(unsigned i = 0U; i < curr_tests; ++i) {
       unsigned curr_queries = 500 + (static_cast<unsigned>(std::rand()) % 20);
-      namespace rb = trees::redblack;
       test_type tr;
       for(unsigned j = 0U; j < curr_queries; ++j) {
         Verify(tr);
@@ -117,7 +116,6 @@ public:
     std::mt19937 generator(rd());
     for(unsigned i = 0U; i < curr_tests; ++i) {
       unsigned curr_queries = 100 + (static_cast<unsigned>(std::rand()) % 100);
-      namespace rb = trees::redblack;
       test_type tr;
       std::vector<int> numbers;
       while (curr_queries) {
