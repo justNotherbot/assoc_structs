@@ -12,23 +12,27 @@ namespace avl {
 
 using diff_type = char;
 
-template<typename Key>
+template<typename Value>
 struct avl_node_t {
   avl_node_t* left = nullptr;
   avl_node_t* right = nullptr;
   avl_node_t* parent = nullptr;
   diff_type diff = 0;
-  Key key;
+  Value value;
 };
 
-template<typename Key, typename Compare>
+template<typename Key, typename Value, typename Compare, typename Project>
 struct avl_tree_t {
   using key_type = Key;
-  using node_type = avl_node_t<Key>;
+  using value_type = Value;
+  using node_type = avl_node_t<value_type>;
   using compare_type = Compare;
+  using projection_type = Project;
+  using tag_type = typename trees::avl_tag;
 
   node_type* root = nullptr;
   compare_type comparator;
+  projection_type projector;
 };
 } // namespace avl
 } // namespace trees
@@ -38,10 +42,14 @@ namespace avl {
 
 namespace avl_pub = trees::avl;
 
-template<typename Key, typename Compare>
-void FixDifferences(avl_pub::avl_node_t<Key>* node, 
-  avl_pub::avl_node_t<Key>* prev, avl_pub::avl_tree_t<Key, Compare>& tr, 
+template<typename Key, typename Value, typename Compare, typename Project>
+void FixDifferences(
+  trees::node_type_t<avl_pub::avl_tree_t<Key, Value, Compare, Project>>* node, 
+  trees::node_type_t<avl_pub::avl_tree_t<Key, Value, Compare, Project>>* prev, 
+  avl_pub::avl_tree_t<Key, Value, Compare, Project>& tr, 
   avl_pub::diff_type diff_rt, bool is_erase) noexcept {
+  using node_type = 
+    trees::node_type_t<avl_pub::avl_tree_t<Key, Value, Compare, Project>>;
   while (node != nullptr) {
     if(prev == node->right) {
       node->diff += diff_rt;
@@ -50,26 +58,25 @@ void FixDifferences(avl_pub::avl_node_t<Key>* node,
     }
     if(node->diff == 2 || node->diff == -2)  {
       bool is_complement = node->diff == 2;
-      using node_type = avl_pub::avl_node_t<Key>;
       auto left_ptr = tree_impl::RetrieveLinkFromNode<node_type>(!is_complement);
       auto right_ptr = tree_impl::RetrieveLinkFromNode<node_type>(is_complement);
       avl_pub::diff_type coeff = is_complement ? -1 : 1;
       if((node->*right_ptr)->diff * coeff == 0) {
-        avl_pub::avl_node_t<Key>* pivot = node->*right_ptr;
+        node_type* pivot = node->*right_ptr;
         tree_impl::RotateImpl(pivot, tr.root, !is_complement);
         pivot->diff = coeff;
         node->diff = -coeff;
         node = pivot;
       } else if((node->*right_ptr)->diff * coeff == -1) {
-        avl_pub::avl_node_t<Key>* pivot = node->*right_ptr;
+        node_type* pivot = node->*right_ptr;
         tree_impl::RotateImpl(pivot, tr.root, !is_complement);
         pivot->diff = 0;
         node->diff = 0;
         node = pivot;
       } else {
-        avl_pub::avl_node_t<Key>* node_a = node;
-        avl_pub::avl_node_t<Key>* node_b = node->*right_ptr;
-        avl_pub::avl_node_t<Key>* pivot = node_b->*left_ptr;
+        node_type* node_a = node;
+        node_type* node_b = node->*right_ptr;
+        node_type* pivot = node_b->*left_ptr;
         tree_impl::RotateImpl(pivot, tr.root, is_complement);
         tree_impl::RotateImpl(pivot, tr.root, !is_complement);
         if(pivot->diff * coeff == 0) {
@@ -99,22 +106,25 @@ void FixDifferences(avl_pub::avl_node_t<Key>* node,
 
 namespace trees {
 
-template<typename Key, typename Compare>
-std::pair<avl::avl_node_t<Key>*, bool> Insert(
-  avl::avl_tree_t<Key, Compare>& tr, const Key& key) noexcept {
-  avl::avl_node_t<Key>* closest = tree_impl::GetClosestNode(
-    tr.root, key, tr.comparator);
-  if(closest != nullptr && closest->key == key) {
+template<typename Key, typename Value, typename Compare, typename Project>
+std::pair<
+  trees::node_type_t<avl::avl_tree_t<Key, Value, Compare, Project>>*, bool> Insert(
+  avl::avl_tree_t<Key, Value, Compare, Project>& tr, const Value& value) noexcept {
+  using node_type = 
+    trees::node_type_t<avl::avl_tree_t<Key, Value, Compare, Project>>;
+  node_type* closest = tree_impl::GetClosestNode(tr.root, tr.projector(value), 
+    tr.comparator, tr.projector);
+  if(closest != nullptr && tr.projector(closest->value) == tr.projector(value)) {
     return {closest, false};
   }
-  avl::avl_node_t<Key>* new_node = new avl::avl_node_t<Key>;
-  new_node->key = key;
+  node_type* new_node = new node_type;
+  new_node->value = value;
   new_node->parent = closest;
   if(closest == nullptr) {
     tr.root = new_node;
     return {new_node, true};
   }
-  if(tr.comparator(closest->key, key)) {
+  if(tr.comparator(tr.projector(closest->value), tr.projector(value))) {
     assert(closest->right == nullptr);
     closest->right = new_node;
   } else {
@@ -125,30 +135,33 @@ std::pair<avl::avl_node_t<Key>*, bool> Insert(
   return {new_node, true};
 }
 
-template<typename Key, typename Compare>
+template<typename Key, typename Value, typename Compare, typename Project>
 void Erase(
-  avl::avl_tree_t<Key, Compare>& tr, avl::avl_node_t<Key>* node) noexcept {
+  avl::avl_tree_t<Key, Value, Compare, Project>& tr, 
+  trees::node_type_t<avl::avl_tree_t<Key, Value, Compare, Project>>* node) noexcept {
+  using node_type = 
+    trees::node_type_t<avl::avl_tree_t<Key, Value, Compare, Project>>;
   if(node == nullptr) {
     return;
   }
   if(node->left != nullptr && node->right != nullptr) {
-    avl::avl_node_t<Key>* curr = node->right;
-    avl::avl_node_t<Key>* prev = curr;
+    node_type* curr = node->right;
+    node_type* prev = curr;
     while (curr != nullptr) {
       prev = curr;
       curr = curr->left;
     }
-    node->key = prev->key;
+    node->value = prev->value;
     node = prev;
   }
   assert(node->left == nullptr || node->right == nullptr);
   node->diff = 0;
   if(node->left != nullptr) {
-    avl::avl_node_t<Key>* pivot = node->left;
+    node_type* pivot = node->left;
     tree_impl::RotateImpl(pivot, tr.root, false);
     pivot->diff = -1;
   } else if(node->right != nullptr) {
-    avl::avl_node_t<Key>* pivot = node->right;
+    node_type* pivot = node->right;
     tree_impl::RotateImpl(pivot, tr.root, true);
     pivot->diff = 1;
   }

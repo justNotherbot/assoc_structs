@@ -1,12 +1,20 @@
 #pragma once
 
 #include <cassert>
+
+#include <concepts>
 #include <utility>
 
 #include <tree_common.hpp>
 
 namespace trees {
 namespace redblack {
+
+namespace requirements {
+
+//template<typename Tree>
+//concept RedBlack = requires
+} // namespace requirements
 
 template <typename Value>
 struct rb_node_t {
@@ -26,10 +34,11 @@ struct rb_tree_t {
   using node_type = rb_node_t<value_type>;
   using compare_type = Compare;
   using projection_type = Project;
+  using tag_type = typename trees::redblack_tag;
 
   node_type* root = nullptr;
   compare_type comparator;
-  projection_type projector;
+  projection_type projector; // value_type -> key_type
 };
 } // namespace redblack
 } // namespace trees
@@ -198,14 +207,14 @@ template <typename Key, typename Value, typename Compare, typename Project>
 std::pair<
   trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project>>*, bool> 
   Insert(
-  redblack::rb_tree_t<Key, Value, Compare, Project>& tr, const Key& k, 
-  const Value& val) {
+  redblack::rb_tree_t<Key, Value, Compare, Project>& tr, const Value& val) {
   using node_type = 
     trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project>>;
   node_type* closest = nullptr;
   if (tr.root != nullptr) {
-    closest = tree_impl::GetClosestNode(tr.root, k, tr.comparator, tr.projector);
-    if (tr.projector(closest->value) == k) {
+    closest = tree_impl::GetClosestNode(tr.root, tr.projector(val), 
+      tr.comparator, tr.projector);
+    if (tr.projector(closest->value) == tr.projector(val)) {
       return {closest, false};
     }
   }
@@ -219,7 +228,7 @@ std::pair<
   new_node->is_red = true;
   new_node->parent = closest;
 
-  if (tr.comparator(tr.projector(closest->value), k)) {
+  if (tr.comparator(tr.projector(closest->value), tr.projector(val))) {
     assert(closest->right == nullptr);
     closest->right = new_node;
   } else {

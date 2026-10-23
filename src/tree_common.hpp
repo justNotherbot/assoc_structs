@@ -77,6 +77,10 @@ void DestroyNode(Node* node) noexcept {
 
 namespace trees {
 
+struct redblack_tag {};
+
+struct avl_tag {};
+
 namespace requirements {
 
 template<typename T>
@@ -85,6 +89,7 @@ concept TreeType = requires(T a) {
   typename T::node_type;
   typename T::compare_type;
   typename T::projection_type;
+  //typename T::tag_type;
 
   {a.root} -> std::convertible_to<typename T::node_type*>;
   {a.comparator} -> std::convertible_to<typename T::compare_type>;
