@@ -2,3 +2,5 @@
 *.exe
 build/
 .vscode/
+*.log
+todo.txt
