@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include <concepts>
+#include <memory>
 #include <utility>
 
 #include <tree_common.hpp>
@@ -12,8 +13,6 @@ namespace redblack {
 
 namespace requirements {
 
-//template<typename Tree>
-//concept RedBlack = requires
 } // namespace requirements
 
 template <typename Value>
@@ -25,20 +24,30 @@ struct rb_node_t {
   rb_node_t* parent = nullptr;
   rb_node_t* left = nullptr;
   rb_node_t* right = nullptr;
+
+  friend void swap(rb_node_t& node_a, rb_node_t& node_b) noexcept {
+    tree_impl::SwapNodes(std::addressof(node_a), std::addressof(node_b));
+    std::swap(node_a.is_red, node_b.is_red);
+  }
 };
 
-template <typename Key, typename Value, typename Compare, typename Project>
+template <typename Key, typename Value, typename Compare, typename Project,
+  ::trees::requirements::Allocator Allocate>
 struct rb_tree_t {
   using key_type = Key;
   using value_type = Value;
   using node_type = rb_node_t<value_type>;
   using compare_type = Compare;
   using projection_type = Project;
+  using allocator_type = Allocate;
+  using actual_allocator_type = 
+    typename std::allocator_traits<Allocate>::rebind_alloc<node_type>;
   using tag_type = typename trees::redblack_tag;
 
   node_type* root = nullptr;
   compare_type comparator;
   projection_type projector; // value_type -> key_type
+  mutable actual_allocator_type allocator;
 };
 } // namespace redblack
 } // namespace trees
@@ -56,11 +65,14 @@ bool CheckBlack(rb_pub::rb_node_t<Value>* node) noexcept {
   return !node->is_red;
 }
 
-template <typename Key, typename Value, typename Compare, typename Project>
+template <typename Key, typename Value, typename Compare, typename Project,
+  trees::requirements::Allocator Allocate>
 void ColorFixup(
-  trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project>>* node, 
-  rb_pub::rb_tree_t<Key, Value, Compare, Project>& tr) {
-  using node_type = trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project>>;
+  trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project,
+    Allocate>>* node, 
+  rb_pub::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr) {
+  using node_type = trees::node_type_t<rb_pub::rb_tree_t<
+    Key, Value, Compare, Project, Allocate>>;
   if (!node->is_red) {
     return;
   }
@@ -103,10 +115,13 @@ void ColorFixup(
   }
 }
 
-template <typename Key, typename Value, typename Compare, typename Project>
-void BlackDelete(rb_pub::rb_tree_t<Key, Value, Compare, Project>& tr, 
-  trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project>>* node) {
-  using node_type = trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project>>;
+template <typename Key, typename Value, typename Compare, typename Project,
+  trees::requirements::Allocator Allocate>
+void BlackDelete(rb_pub::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
+  trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project,
+    Allocate>>* node) {
+  using node_type = trees::node_type_t<rb_pub::rb_tree_t<Key, Value, 
+    Compare, Project, Allocate>>;
   assert(!node->is_red);
   node_type* np = node->parent;
   if (np == nullptr) {
@@ -183,19 +198,23 @@ void BlackDelete(rb_pub::rb_tree_t<Key, Value, Compare, Project>& tr,
   }
 }
 
-template<typename Key, typename Value, typename Compare, typename Project>
-void CutNodeAway(rb_pub::rb_tree_t<Key, Value, Compare, Project>& tr, 
-  trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project>>* node) {
+template<typename Key, typename Value, typename Compare, typename Project, 
+  trees::requirements::Allocator Allocate, 
+  trees::requirements::Allocator AllocateUse>
+void CutNodeAway(rb_pub::rb_tree_t<Key, Value, Compare, Project, 
+    Allocate>& tr, 
+  trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project,
+    Allocate>>* node, AllocateUse& allocator) {
   if (node->parent == nullptr) {
     tr.root = nullptr;
-    delete node;
+    ::tree_impl::DeleteNode(node, allocator);
   } else {
     if (node == node->parent->right) {
       node->parent->right = nullptr;
     } else {
       node->parent->left = nullptr;
     }
-    delete node;
+    ::tree_impl::DeleteNode(node, allocator);
   }
 }
 } // namespace redblack
@@ -203,13 +222,18 @@ void CutNodeAway(rb_pub::rb_tree_t<Key, Value, Compare, Project>& tr,
 
 namespace trees {
 
-template <typename Key, typename Value, typename Compare, typename Project>
+template <typename Key, typename Value, typename Compare, typename Project,
+  requirements::Allocator Allocate,
+  requirements::Allocator AllocateUse>
 std::pair<
-  trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project>>*, bool> 
+  trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project,
+    Allocate>>*, bool> 
   Insert(
-  redblack::rb_tree_t<Key, Value, Compare, Project>& tr, const Value& val) {
+  redblack::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
+    const Value& val, AllocateUse& allocator) {
   using node_type = 
-    trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project>>;
+    trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project,
+      Allocate>>;
   node_type* closest = nullptr;
   if (tr.root != nullptr) {
     closest = tree_impl::GetClosestNode(tr.root, tr.projector(val), 
@@ -219,7 +243,8 @@ std::pair<
     }
   }
 
-  node_type* new_node = new node_type;
+  void* new_memory = tr.allocator.allocate(1);
+  node_type* new_node = new (new_memory) node_type;
   new_node->value = val;
   if (tr.root == nullptr) {
     tr.root = new_node;
@@ -239,11 +264,14 @@ std::pair<
   return {new_node, true};
 }
 
-template <typename Key, typename Value, typename Compare, typename Project>
-void Erase(redblack::rb_tree_t<Key, Value, Compare, Project>& tr, 
-  trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project>>* node) {
+template <typename Key, typename Value, typename Compare, typename Project,
+  requirements::Allocator Allocate, requirements::Allocator AllocateUse>
+void Erase(redblack::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
+  trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project,
+    Allocate>>* node, AllocateUse& allocator) {
   using node_type = 
-    trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project>>;
+    trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project,
+      Allocate>>;
   if (node == nullptr) {
     return;
   }
@@ -254,21 +282,33 @@ void Erase(redblack::rb_tree_t<Key, Value, Compare, Project>& tr,
       prev = curr;
       curr = curr->left;
     }
-    node->value = prev->value;
-    node = prev;
+    if(node == tr.root) {
+      tr.root = prev;
+    }
+    swap(*node, *prev);
   }
   if (node->left != nullptr) {
     assert(!node->is_red);
-    node->value = node->left->value;
-    delete node->left;
-    node->left = nullptr;
+    node_type* tmp = node->left;
+    if(node == tr.root) {
+      tr.root = tmp;
+    }
+    swap(*node, *tmp);
+    using std::swap;
+    ::tree_impl::DeleteNode(node, allocator);
+    tmp->left = nullptr;
     return;
   }
   if (node->right != nullptr) {
     assert(!node->is_red);
-    node->value = node->right->value;
-    delete node->right;
-    node->right = nullptr;
+    node_type* tmp = node->right;
+    if(node == tr.root) {
+      tr.root = tmp;
+    }
+    swap(*node, *tmp);
+    using std::swap;
+    ::tree_impl::DeleteNode(node, allocator);
+    tmp->right = nullptr;
     return;
   }
   
@@ -276,6 +316,6 @@ void Erase(redblack::rb_tree_t<Key, Value, Compare, Project>& tr,
     tree_impl::redblack::BlackDelete(tr, node);
   }
   
-  tree_impl::redblack::CutNodeAway(tr, node);
+  tree_impl::redblack::CutNodeAway(tr, node, allocator);
 }
 } // namespace trees

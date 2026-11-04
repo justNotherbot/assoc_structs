@@ -30,10 +30,12 @@ private:
       projector(node->value), 
       projector(node->value)};
     if(node->left != nullptr) {
+      assert(node->left != node);
       auto segl = GetRange(node->left, projector);
       res = MergeSegments(segl, res);
     }
     if(node->right != nullptr) {
+      assert(node->right != node);
       auto segr = GetRange(node->right, projector);
       res = MergeSegments(res, segr);
     }
