@@ -100,6 +100,30 @@ Node* GetClosestNode(Node* node, const Key& key,
   return res;
 }
 
+template<typename Node, typename Key, typename Compare, typename Project>
+Node* GetBound(Node* node, const Key& key, 
+  const Compare& compare, const Project& project, const bool is_lower) {
+  if(node == nullptr) {
+    return node;
+  }
+  if(compare(project(node->value), key)) {
+    return GetBound(node->right, key, compare, project, is_lower);
+  }
+  bool is_equal = project(node->value) == key;
+  Node* tmp = nullptr;
+  if(is_lower && is_equal) {
+    return node;
+  } else if(is_equal) {
+    tmp = GetBound(node->right, key, compare, project, is_lower);
+  } else {
+    tmp = GetBound(node->left, key, compare, project, is_lower);
+    if(tmp == nullptr) {
+      tmp = node;
+    }
+  }
+  return tmp;
+}
+
 template<typename Node, ::trees::requirements::Allocator Allocate>
 void DestroyNode(Node* node, Allocate& allocator) noexcept {
   if(node == nullptr) {

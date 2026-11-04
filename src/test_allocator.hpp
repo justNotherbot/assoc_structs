@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <utility>
 
 namespace tree_check {
 
@@ -15,6 +16,11 @@ class TestAllocator final {
 
  public:
   using value_type = T;
+  using propagate_on_swap = std::true_type;
+
+  friend void swap(TestAllocator& a, TestAllocator& b) noexcept {
+    std::swap(a.diff_, b.diff_);
+  }
 
   TestAllocator() = default;
 

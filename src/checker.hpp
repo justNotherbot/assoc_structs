@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "bst_verificator.hpp"
+#include "tree.hpp"
 #include "tree_common.hpp"
 #include "tree_wrapper.hpp"
 
@@ -27,6 +28,7 @@ template<trees::requirements::TreeType Tree, typename ValueGenerator,
   typename Verificator>
 class Tester final {
 public:
+  using tree_type = Tree;
   using test_type = trees::tree_wrapper_t<Tree>;
   using test_key_type = typename test_type::key_type;
   using test_value_type = typename test_type::value_type;
@@ -51,7 +53,6 @@ private:
     return node;
   }
 
-public:
   void VerifyExample1() noexcept {
     test_type tree;
     test_node_type* node = ManualNodeCreate(tree.allocator);
@@ -209,11 +210,83 @@ public:
     VerifyEraseRandom();
   }
 
+  void BoundExample1() noexcept {
+    test_type tr;
+    std::vector<int> values = {1, 8, 4, 6};
+    for(const auto& value: values) {
+      trees::Insert(tr, value_generator_(value));
+    }
+    for(const auto& value: values) {
+      test_node_type* node = trees::FindBound(tr, value, true);
+      assert(tr.projector(node->value) == value);
+      node = trees::FindBound(tr, value, false);
+      if(value == 8) {
+        assert(node == nullptr);
+      } else if(value == 1) {
+        assert(tr.projector(node->value) == 4);
+      } else if(value == 4) {
+        assert(tr.projector(node->value) == 6);
+      } else if(value == 6) {
+        assert(tr.projector(node->value) == 8);
+      }
+    }
+    trees::Destroy(tr);
+  }
+
+  void BoundRandom() {
+    unsigned cnt = 100U + ((static_cast<unsigned>(std::rand())) % 1000U);
+    std::set<int> values;
+    test_type tr;
+    for(unsigned i = 0U; i < cnt; ++i) {
+      int val = std::rand();
+      values.insert(val);
+      trees::Insert(tr, value_generator_(val));
+      assert(tr.size == values.size());
+    }
+    for(const auto& key: values) {
+      test_node_type* node_lo = trees::FindBound(tr, key, true);
+      test_node_type* node_upp = trees::FindBound(tr, key, false);
+      assert(node_lo != nullptr && tr.projector(node_lo->value) == key);
+      auto act_upp = values.upper_bound(key);
+      if(act_upp == values.end()) {
+        assert(node_upp == nullptr);
+      } else {
+        assert(node_upp != nullptr && 
+          tr.projector(node_upp->value) == *act_upp);
+      }
+    }
+    for(unsigned i = 0U; i < cnt; ++i) {
+      int val = std::rand();
+      test_node_type* node_lo = trees::FindBound(tr, val, true);
+      test_node_type* node_upp = trees::FindBound(tr, val, false);
+      auto it_lo = values.lower_bound(val);
+      auto it_upp = values.upper_bound(val);
+      if(it_lo == values.end()) {
+        assert(node_lo == nullptr);
+      } else {
+        assert(tr.projector(node_lo->value) == *it_lo);
+      }
+      if(it_upp == values.end()) {
+        assert(node_upp == nullptr);
+      } else {
+        assert(tr.projector(node_upp->value) == *it_upp);
+      }
+    }
+    trees::Destroy(tr);
+  }
+
+  void VerifyBounds() {
+    BoundExample1();
+    BoundRandom();
+  }
+
+public:
   void VerifyAllCases() noexcept {
     std::srand(std::time(0));
     VerifyExamples();
     VerifyInsert();
     VerifyErase();
+    VerifyBounds();
   }
 };
 } // namespace tree_check

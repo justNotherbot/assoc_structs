@@ -33,6 +33,20 @@ const typename Tree::node_type* Find(const Tree& tr, Key&& key) {
   return nullptr;
 }
 
+template<requirements::TreeType Tree, typename Key>
+typename Tree::node_type* FindBound(Tree& tr, Key&& key, 
+  bool is_lower) {
+  return tree_impl::GetBound(tr.root, key, tr.comparator, 
+    tr.projector, is_lower);
+}
+
+template<requirements::TreeType Tree, typename Key>
+const typename Tree::node_type* FindBound(const Tree& tr, Key&& key, 
+  bool is_lower) {
+  return tree_impl::GetBound(tr.root, key, tr.comparator, 
+    tr.projector, is_lower);
+}
+
 template<typename Node>
 Node* FindNextNode(Node* node) {
   if(node == nullptr) {

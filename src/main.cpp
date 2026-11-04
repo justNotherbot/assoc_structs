@@ -7,6 +7,7 @@
 #include "avl/checker.hpp"
 #include "redblack/checker.hpp"
 #include "checker.hpp"
+#include "set_tests.hpp"
 #include "test_allocator.hpp"
 
 void verify_rb_set_int() {
@@ -17,6 +18,9 @@ void verify_rb_set_int() {
   tree_check::Tester<
     test_type, trees::Identity<int>, test_verificator> tester;
   tester.VerifyAllCases();
+  using set_tests = tree_check::SetTester<int, std::less<int>, trees::Identity<int>>;
+  set_tests set_tester;
+  set_tester.VerifyAllCases();
 }
 
 void verify_rb_map_int() {

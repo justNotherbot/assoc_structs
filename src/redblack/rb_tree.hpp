@@ -15,7 +15,7 @@ namespace requirements {
 
 } // namespace requirements
 
-template <typename Value>
+template <std::regular Value>
 struct rb_node_t {
   using value_type = Value;
 
@@ -65,7 +65,7 @@ bool CheckBlack(rb_pub::rb_node_t<Value>* node) noexcept {
   return !node->is_red;
 }
 
-template <typename Key, typename Value, typename Compare, typename Project,
+template <std::regular Key, std::regular Value, typename Compare, typename Project,
   trees::requirements::Allocator Allocate>
 void ColorFixup(
   trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project,
@@ -115,7 +115,7 @@ void ColorFixup(
   }
 }
 
-template <typename Key, typename Value, typename Compare, typename Project,
+template <std::regular Key, std::regular Value, typename Compare, typename Project,
   trees::requirements::Allocator Allocate>
 void BlackDelete(rb_pub::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
   trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project,
@@ -198,7 +198,7 @@ void BlackDelete(rb_pub::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr,
   }
 }
 
-template<typename Key, typename Value, typename Compare, typename Project, 
+template<std::regular Key, std::regular Value, typename Compare, typename Project, 
   trees::requirements::Allocator Allocate, 
   trees::requirements::Allocator AllocateUse>
 void CutNodeAway(rb_pub::rb_tree_t<Key, Value, Compare, Project, 
@@ -222,7 +222,7 @@ void CutNodeAway(rb_pub::rb_tree_t<Key, Value, Compare, Project,
 
 namespace trees {
 
-template <typename Key, typename Value, typename Compare, typename Project,
+template <std::regular Key, std::regular Value, typename Compare, typename Project,
   requirements::Allocator Allocate,
   requirements::Allocator AllocateUse>
 std::pair<
@@ -264,7 +264,7 @@ std::pair<
   return {new_node, true};
 }
 
-template <typename Key, typename Value, typename Compare, typename Project,
+template <std::regular Key, std::regular Value, typename Compare, typename Project,
   requirements::Allocator Allocate, requirements::Allocator AllocateUse>
 void Erase(redblack::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
   trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project,

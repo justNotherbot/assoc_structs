@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdlib>
 
+#include <concepts>
 #include <memory>
 #include <utility>
 
@@ -13,8 +14,10 @@ namespace avl {
 
 using diff_type = char;
 
-template<typename Value>
+template<std::regular Value>
 struct avl_node_t {
+  using value_type = Value;
+
   avl_node_t* left = nullptr;
   avl_node_t* right = nullptr;
   avl_node_t* parent = nullptr;
@@ -27,7 +30,7 @@ struct avl_node_t {
   }
 };
 
-template<typename Key, typename Value, typename Compare, typename Project,
+template<std::regular Key, std::regular Value, typename Compare, typename Project,
   ::trees::requirements::Allocator Allocate>
 struct avl_tree_t {
   using key_type = Key;
@@ -53,7 +56,8 @@ namespace avl {
 
 namespace avl_pub = trees::avl;
 
-template<typename Key, typename Value, typename Compare, typename Project,
+template<std::regular Key, std::regular Value, 
+  typename Compare, typename Project,
   ::trees::requirements::Allocator Allocate>
 void FixDifferences(
   trees::node_type_t<
@@ -121,7 +125,8 @@ void FixDifferences(
 
 namespace trees {
 
-template<typename Key, typename Value, typename Compare, typename Project,
+template<std::regular Key, std::regular Value, 
+  typename Compare, typename Project,
   requirements::Allocator Allocate, requirements::Allocator AllocateUse>
 std::pair<
   trees::node_type_t<avl::avl_tree_t<Key, Value, Compare, Project,
@@ -155,7 +160,8 @@ std::pair<
   return {new_node, true};
 }
 
-template<typename Key, typename Value, typename Compare, typename Project,
+template<std::regular Key, std::regular Value, 
+  typename Compare, typename Project,
   ::trees::requirements::Allocator Allocate, 
   ::trees::requirements::Allocator AllocateUse>
 void Erase(
