@@ -10,6 +10,40 @@
 #include "set_tests.hpp"
 #include "test_allocator.hpp"
 
+struct NoDefaultConstructible {
+  int val;
+
+  NoDefaultConstructible(int x) : val{x} {}
+
+  friend bool operator<(const NoDefaultConstructible& a,
+    const NoDefaultConstructible& b) noexcept {
+    return a.val < b.val;
+  }
+
+  friend bool operator==(const NoDefaultConstructible& a,
+    const NoDefaultConstructible& b) noexcept {
+    return a.val == b.val;
+  }
+
+  friend bool operator!=(const NoDefaultConstructible& a,
+    const NoDefaultConstructible& b) noexcept {
+    return !(a == b);
+  }
+};
+
+struct NdcCompare {
+  bool operator()(const NoDefaultConstructible& a, 
+    const NoDefaultConstructible& b) const noexcept {
+    return a.val < b.val;
+  }
+};
+
+struct NdcFromInt {
+  NoDefaultConstructible operator()(int x) const noexcept {
+    return NoDefaultConstructible{x};
+  }
+};
+
 void verify_rb_set_int() {
   using test_type = trees::redblack::rb_tree_t<
     int, int, std::less<int>, trees::Identity<int>, 
@@ -21,6 +55,10 @@ void verify_rb_set_int() {
   using set_tests = tree_check::SetTester<int, std::less<int>, trees::Identity<int>>;
   set_tests set_tester;
   set_tester.VerifyAllCases();
+  using set_tests_no_default = tree_check::SetTester<
+    NoDefaultConstructible, NdcCompare, NdcFromInt>;
+  set_tests_no_default no_default_tester;
+  no_default_tester.VerifyAllCases();
 }
 
 void verify_rb_map_int() {

@@ -15,7 +15,7 @@ namespace requirements {
 
 } // namespace requirements
 
-template <std::regular Value>
+template <typename Value>
 struct rb_node_t {
   using value_type = Value;
 
@@ -34,7 +34,8 @@ struct rb_node_t {
   }
 };
 
-template <typename Key, typename Value, typename Compare, typename Project,
+template <trees::requirements::TreeKey Key, typename Value, 
+  typename Compare, typename Project,
   ::trees::requirements::Allocator Allocate>
 struct rb_tree_t {
   using key_type = Key;
@@ -45,7 +46,7 @@ struct rb_tree_t {
   using allocator_type = Allocate;
   using actual_allocator_type = 
     typename std::allocator_traits<Allocate>::rebind_alloc<node_type>;
-  using tag_type = typename trees::redblack_tag;
+  using tag_type = typename trees::redblack_tag_t;
 
   node_type* root = nullptr;
   compare_type comparator;
@@ -68,7 +69,8 @@ bool CheckBlack(rb_pub::rb_node_t<Value>* node) noexcept {
   return !node->is_red;
 }
 
-template <std::regular Key, std::regular Value, typename Compare, typename Project,
+template <trees::requirements::TreeKey Key, typename Value, 
+  typename Compare, typename Project,
   trees::requirements::Allocator Allocate>
 void ColorFixup(
   trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project,
@@ -118,7 +120,8 @@ void ColorFixup(
   }
 }
 
-template <std::regular Key, std::regular Value, typename Compare, typename Project,
+template <trees::requirements::TreeKey Key, typename Value, 
+  typename Compare, typename Project,
   trees::requirements::Allocator Allocate>
 void BlackDelete(rb_pub::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
   trees::node_type_t<rb_pub::rb_tree_t<Key, Value, Compare, Project,
@@ -201,7 +204,8 @@ void BlackDelete(rb_pub::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr,
   }
 }
 
-template<std::regular Key, std::regular Value, typename Compare, typename Project, 
+template<trees::requirements::TreeKey Key, typename Value, 
+  typename Compare, typename Project, 
   trees::requirements::Allocator Allocate, 
   trees::requirements::Allocator AllocateUse>
 void CutNodeAway(rb_pub::rb_tree_t<Key, Value, Compare, Project, 
@@ -225,7 +229,8 @@ void CutNodeAway(rb_pub::rb_tree_t<Key, Value, Compare, Project,
 
 namespace tree_impl {
 
-template <std::regular Key, std::regular Value, typename Compare, typename Project,
+template <trees::requirements::TreeKey Key, typename Value, 
+  typename Compare, typename Project,
   trees::requirements::Allocator Allocate,
   trees::requirements::Allocator AllocateUse,
   typename ... ConstructArgs>
@@ -268,7 +273,8 @@ std::pair<
   return {new_node, true};
 }
 
-template <std::regular Key, std::regular Value, typename Compare, typename Project,
+template <trees::requirements::TreeKey Key, typename Value, 
+  typename Compare, typename Project,
   trees::requirements::Allocator Allocate, 
   trees::requirements::Allocator AllocateUse>
 void Erase(trees::redblack::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr, 

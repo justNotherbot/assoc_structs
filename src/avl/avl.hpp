@@ -14,7 +14,7 @@ namespace avl {
 
 using diff_type = char;
 
-template<std::regular Value>
+template<typename Value>
 struct avl_node_t {
   using value_type = Value;
 
@@ -33,7 +33,8 @@ struct avl_node_t {
   }
 };
 
-template<std::regular Key, std::regular Value, typename Compare, typename Project,
+template<trees::requirements::TreeKey Key, typename Value, 
+  typename Compare, typename Project,
   ::trees::requirements::Allocator Allocate>
 struct avl_tree_t {
   using key_type = Key;
@@ -44,7 +45,7 @@ struct avl_tree_t {
   using allocator_type = Allocate;
   using actual_allocator_type = 
     typename std::allocator_traits<Allocate>::rebind_alloc<node_type>;
-  using tag_type = typename trees::avl_tag;
+  using tag_type = typename trees::avl_tag_t;
 
   node_type* root = nullptr;
   compare_type comparator;
@@ -59,7 +60,7 @@ namespace avl {
 
 namespace avl_pub = trees::avl;
 
-template<std::regular Key, std::regular Value, 
+template<trees::requirements::TreeKey Key, typename Value, 
   typename Compare, typename Project,
   ::trees::requirements::Allocator Allocate>
 void FixDifferences(
@@ -128,7 +129,7 @@ void FixDifferences(
 
 namespace tree_impl {
 
-template<std::regular Key, std::regular Value, 
+template<trees::requirements::TreeKey Key, typename Value, 
   typename Compare, typename Project,
   trees::requirements::Allocator Allocate, 
   trees::requirements::Allocator AllocateUse,
@@ -166,7 +167,7 @@ std::pair<
   return {new_node, true};
 }
 
-template<std::regular Key, std::regular Value, 
+template<trees::requirements::TreeKey Key, typename Value, 
   typename Compare, typename Project,
   ::trees::requirements::Allocator Allocate, 
   ::trees::requirements::Allocator AllocateUse>

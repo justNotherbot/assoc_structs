@@ -9,9 +9,9 @@
 
 namespace trees {
 
-struct redblack_tag {};
+struct redblack_tag_t {};
 
-struct avl_tag {};
+struct avl_tag_t {};
 
 namespace requirements {
 
@@ -29,6 +29,9 @@ concept TreeType = requires(T a) {
   {a.projector} -> std::convertible_to<typename T::projection_type>;
   {a.allocator} -> std::convertible_to<typename T::actual_allocator_type>;
 };
+
+template<typename T>
+concept TreeKey = std::equality_comparable<T>;
 
 template<typename T>
 concept Allocator = requires(T a,

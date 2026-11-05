@@ -11,7 +11,7 @@ namespace tree_check {
 template<typename Key, typename Comp, typename IntToKey>
 class SetTester final {
 public:
-  using test_type = my_stl::Set<Key, std::less<Key>, TestAllocator<Key>>;
+  using test_type = my_stl::Set<Key, Comp, TestAllocator<Key>>;
   using key_type = typename test_type::key_type;
   using converter_type = IntToKey;
 
