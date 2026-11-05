@@ -10,10 +10,11 @@
 #include <stdexcept>
 #include <vector>
 
+#include <tree.hpp>
+#include <tree_common.hpp>
+#include <tree_wrapper.hpp>
+
 #include "bst_verificator.hpp"
-#include "tree.hpp"
-#include "tree_common.hpp"
-#include "tree_wrapper.hpp"
 
 namespace tree_check {
 
@@ -97,13 +98,13 @@ private:
     assert(ret && tr.size == 1);
     auto [node1, ret1] = trees::Insert(tr, val2);
     assert(ret1 && tr.size == 2);
-    trees::Erase(tr, 1);
+    trees::Erase(tr, trees::Find(tr, 1));
     assert(tr.size == 1);
-    trees::Erase(tr, 1);
+    trees::Erase(tr, trees::Find(tr, 1));
     assert(tr.size == 1);
-    trees::Erase(tr, 2);
+    trees::Erase(tr, trees::Find(tr, 2));
     assert(tr.size == 0);
-    trees::Erase(tr, 2);
+    trees::Erase(tr, trees::Find(tr, 2));
     assert(tr.size == 0);
     trees::Destroy(tr);
   }
@@ -150,11 +151,11 @@ private:
     Verify(tr);
     trees::Insert(tr, value_generator_(145));
     Verify(tr);
-    trees::Erase(tr, 32);
+    trees::Erase(tr, trees::Find(tr, 32));
     Verify(tr);
-    trees::Erase(tr, 145);
+    trees::Erase(tr, trees::Find(tr, 145));
     Verify(tr);
-    trees::Erase(tr, 2);
+    trees::Erase(tr, trees::Find(tr, 2));
     Verify(tr);
     trees::Destroy(tr);
   }
@@ -189,7 +190,7 @@ private:
       for(std::size_t j = 0; j < numbers.size(); ++j) {
         Verify(tr);
         numbers_ord.erase(numbers[j]);
-        trees::Erase(tr, numbers[j]);
+        trees::Erase(tr, trees::Find(tr, numbers[j]));
         test_node_type* curr_node = trees::Find(tr, numbers[j]);
         assert(curr_node == nullptr);
         if(numbers_ord.size()) {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "avl/avl.hpp"
 #include "redblack/rb_tree.hpp"
 #include "tree_wrapper.hpp"
@@ -68,18 +70,18 @@ Node* FindNextNode(Node* node) {
   return node;
 }
 
-template <requirements::TreeType Tree>
+template <requirements::TreeType Tree, typename ... Args>
 auto Insert(tree_wrapper_t<Tree>& tr, 
-  const typename Tree::value_type& value) {
+  Args&&... args) {
   using key_type = typename Tree::key_type;
   using value_type = typename Tree::value_type;
   using compare_type = typename Tree::compare_type;
   using project_type = typename Tree::projection_type;
   using allocator_type = typename Tree::allocator_type;
   using actual_allocator_type = typename Tree::actual_allocator_type;
-  auto res = Insert<key_type, value_type, compare_type, project_type,
-    allocator_type, actual_allocator_type>(tr, 
-    value, tr.allocator);
+  auto res = tree_impl::Insert<key_type, value_type, compare_type, project_type,
+    allocator_type, actual_allocator_type, Args...>(
+      tr, tr.allocator, std::forward<Args>(args)...);
   if(res.second) {
     if(tr.begin == nullptr) {
       tr.begin = res.first;
@@ -95,25 +97,23 @@ auto Insert(tree_wrapper_t<Tree>& tr,
 }
 
 template <requirements::TreeType Tree>
-void Erase(tree_wrapper_t<Tree>& tr, const typename Tree::key_type& key) {
+void Erase(tree_wrapper_t<Tree>& tr, typename Tree::node_type* node) {
   using key_type = typename Tree::key_type;
   using value_type = typename Tree::value_type;
   using compare_type = typename Tree::compare_type;
   using project_type = typename Tree::projection_type;
   using allocator_type = typename Tree::allocator_type;
   using actual_allocator_type = typename Tree::actual_allocator_type;
-  using node_type = typename Tree::node_type;
   if(tr.size == 0) {
     return;
   }
-  node_type* node = Find(tr, key);
   if(node == nullptr) {
     return;
   }
   if(node == tr.begin) {
     tr.begin = FindNextNode(tr.begin);
   }
-  Erase<key_type, value_type, compare_type, project_type,
+  tree_impl::Erase<key_type, value_type, compare_type, project_type,
     allocator_type, actual_allocator_type>(
     tr, node, tr.allocator);
   --tr.size;

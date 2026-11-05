@@ -24,6 +24,9 @@ struct avl_node_t {
   diff_type diff = 0;
   Value value;
 
+  template<typename ... Args>
+  avl_node_t(Args&&... args) : value{std::forward<Args>(args)...} {}
+
   friend void swap(avl_node_t& node_a, avl_node_t& node_b) noexcept {
     tree_impl::SwapNodes(std::addressof(node_a), std::addressof(node_b));
     std::swap(node_a.diff, node_b.diff);
@@ -123,33 +126,36 @@ void FixDifferences(
 }
 }
 
-namespace trees {
+namespace tree_impl {
 
 template<std::regular Key, std::regular Value, 
   typename Compare, typename Project,
-  requirements::Allocator Allocate, requirements::Allocator AllocateUse>
+  trees::requirements::Allocator Allocate, 
+  trees::requirements::Allocator AllocateUse,
+  typename ... CreateArgs>
 std::pair<
-  trees::node_type_t<avl::avl_tree_t<Key, Value, Compare, Project,
+  trees::node_type_t<trees::avl::avl_tree_t<Key, Value, Compare, Project,
     Allocate>>*, bool> Insert(
-  avl::avl_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
-  const Value& value, AllocateUse& allocator) noexcept {
+  trees::avl::avl_tree_t<Key, Value, Compare, Project, Allocate>& tr,
+  AllocateUse& allocator, CreateArgs&&... args) {
   using node_type = 
-    trees::node_type_t<avl::avl_tree_t<Key, Value, Compare, Project, 
+    trees::node_type_t<trees::avl::avl_tree_t<Key, Value, Compare, Project, 
     Allocate>>;
-  node_type* closest = tree_impl::GetClosestNode(tr.root, tr.projector(value), 
+  void* new_memory = allocator.allocate(1);
+  node_type* new_node = 
+    new (new_memory) node_type{std::forward<CreateArgs>(args)...};
+  node_type* closest = tree_impl::GetClosestNode(tr.root, tr.projector(new_node->value), 
     tr.comparator, tr.projector);
-  if(closest != nullptr && tr.projector(closest->value) == tr.projector(value)) {
+  if(closest != nullptr && tr.projector(closest->value) == tr.projector(new_node->value)) {
+    DeleteNode(new_node, allocator);
     return {closest, false};
   }
-  void* new_memory = allocator.allocate(1);
-  node_type* new_node = new (new_memory) node_type;
-  new_node->value = value;
   new_node->parent = closest;
   if(closest == nullptr) {
     tr.root = new_node;
     return {new_node, true};
   }
-  if(tr.comparator(tr.projector(closest->value), tr.projector(value))) {
+  if(tr.comparator(tr.projector(closest->value), tr.projector(new_node->value))) {
     assert(closest->right == nullptr);
     closest->right = new_node;
   } else {
@@ -165,12 +171,12 @@ template<std::regular Key, std::regular Value,
   ::trees::requirements::Allocator Allocate, 
   ::trees::requirements::Allocator AllocateUse>
 void Erase(
-  avl::avl_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
-  trees::node_type_t<avl::avl_tree_t<Key, Value, Compare, Project,
+  trees::avl::avl_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
+  trees::node_type_t<trees::avl::avl_tree_t<Key, Value, Compare, Project,
     Allocate>>* node,
   AllocateUse& allocator) noexcept {
   using node_type = 
-    trees::node_type_t<avl::avl_tree_t<Key, Value, Compare, Project, 
+    trees::node_type_t<trees::avl::avl_tree_t<Key, Value, Compare, Project, 
       Allocate>>;
   if(node == nullptr) {
     return;
@@ -191,15 +197,15 @@ void Erase(
   node->diff = 0;
   if(node->left != nullptr) {
     node_type* pivot = node->left;
-    tree_impl::RotateImpl(pivot, tr.root, false);
+    RotateImpl(pivot, tr.root, false);
     pivot->diff = -1;
   } else if(node->right != nullptr) {
     node_type* pivot = node->right;
-    tree_impl::RotateImpl(pivot, tr.root, true);
+    RotateImpl(pivot, tr.root, true);
     pivot->diff = 1;
   }
   assert(node->left == nullptr && node->right == nullptr);
-  tree_impl::avl::FixDifferences(node->parent, node, tr, 1, true);
+  avl::FixDifferences(node->parent, node, tr, 1, true);
   if(node->parent == nullptr) {
     tr.root = nullptr;
   } else {
@@ -209,6 +215,6 @@ void Erase(
       node->parent->right = nullptr;
     }
   }
-  ::tree_impl::DeleteNode(node, allocator);
+  DeleteNode(node, allocator);
 }
 } // namespace trees

@@ -3,17 +3,15 @@
 #include <set>
 #include <vector>
 
+#include <containers.hpp>
 #include "test_allocator.hpp"
-#include "tree.hpp"
 
 namespace tree_check {
 
 template<typename Key, typename Comp, typename IntToKey>
 class SetTester final {
 public:
-  using tree_type = trees::redblack::rb_tree_t<
-    Key, Key, Comp, trees::Identity<Key>, TestAllocator<Key>>;
-  using test_type = trees::Tree<tree_type>;
+  using test_type = my_stl::Set<Key, std::less<Key>, TestAllocator<Key>>;
   using key_type = typename test_type::key_type;
   using converter_type = IntToKey;
 
@@ -83,11 +81,35 @@ private:
     tr2 = tr;
     assert(tr2 == tr1 && tr2 == tr && CompareToSet(tr2, target));
   }
+
+  void EmplaceTest() const noexcept {
+    test_type tr;
+    auto [iter, is_inserted] = tr.emplace(converter_(1));
+    assert(is_inserted);
+    assert(tr.find(1) != tr.end() && tr.size() == 1);
+  }
+
+  void EraseTest() const noexcept {
+    std::vector<int> int_vec = {2, 54, 4, 9};
+    std::vector<int> delete_vec = {2, 4, 6, 8};
+    std::vector<int> res_vec = {54, 9};
+    std::vector<key_type> key_vec = ToKeyVec(int_vec);
+    test_type tr{key_vec.begin(), key_vec.end()};
+    std::vector<key_type> delete_keys = ToKeyVec(delete_vec);
+    tr.erase(delete_keys.begin(), delete_keys.end());
+    std::vector<key_type> res_key = ToKeyVec(res_vec);
+    test_type res_tr{res_key.begin(), res_key.end()};
+    assert(res_tr == tr);
+    assert(res_tr.count(54) && res_tr.count(9) && 
+      res_tr.contains(54) && res_tr.count(9));
+  }
 public:
   void VerifyAllCases() const noexcept {
     IterationTest();
     FromVectorTest();
     CopyTest();
+    EmplaceTest();
+    EraseTest();
   }
 };
 } // namespace tree_check

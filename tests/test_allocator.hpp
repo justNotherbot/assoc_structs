@@ -16,7 +16,7 @@ class TestAllocator final {
 
  public:
   using value_type = T;
-  using propagate_on_swap = std::true_type;
+  using propagate_on_container_swap = std::true_type;
 
   friend void swap(TestAllocator& a, TestAllocator& b) noexcept {
     std::swap(a.diff_, b.diff_);

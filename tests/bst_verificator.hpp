@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include "tree_common.hpp"
+#include <tree_common.hpp>
 
 namespace tree_check {
 

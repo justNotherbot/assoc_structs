@@ -12,7 +12,7 @@
 #include <vector>
 
 #include <common_operations.hpp>
-#include "rb_tree.hpp"
+#include <redblack/rb_tree.hpp>
 
 namespace tree_check {
 

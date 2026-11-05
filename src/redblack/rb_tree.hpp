@@ -25,6 +25,9 @@ struct rb_node_t {
   rb_node_t* left = nullptr;
   rb_node_t* right = nullptr;
 
+  template<typename ... Args>
+  rb_node_t(Args&&... args) : value{std::forward<Args>(args)...} {}
+
   friend void swap(rb_node_t& node_a, rb_node_t& node_b) noexcept {
     tree_impl::SwapNodes(std::addressof(node_a), std::addressof(node_b));
     std::swap(node_a.is_red, node_b.is_red);
@@ -220,32 +223,33 @@ void CutNodeAway(rb_pub::rb_tree_t<Key, Value, Compare, Project,
 } // namespace redblack
 } //namespace tree_impl
 
-namespace trees {
+namespace tree_impl {
 
 template <std::regular Key, std::regular Value, typename Compare, typename Project,
-  requirements::Allocator Allocate,
-  requirements::Allocator AllocateUse>
+  trees::requirements::Allocator Allocate,
+  trees::requirements::Allocator AllocateUse,
+  typename ... ConstructArgs>
 std::pair<
-  trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project,
+  trees::node_type_t<trees::redblack::rb_tree_t<Key, Value, Compare, Project,
     Allocate>>*, bool> 
   Insert(
-  redblack::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
-    const Value& val, AllocateUse& allocator) {
+  trees::redblack::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
+    AllocateUse& allocator, ConstructArgs&&... args) {
   using node_type = 
-    trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project,
+    trees::node_type_t<trees::redblack::rb_tree_t<Key, Value, Compare, Project,
       Allocate>>;
   node_type* closest = nullptr;
+  void* new_memory = tr.allocator.allocate(1);
+  node_type* new_node = new (new_memory) node_type{std::forward<ConstructArgs>(args)...};
   if (tr.root != nullptr) {
-    closest = tree_impl::GetClosestNode(tr.root, tr.projector(val), 
+    closest = GetClosestNode(tr.root, tr.projector(new_node->value), 
       tr.comparator, tr.projector);
-    if (tr.projector(closest->value) == tr.projector(val)) {
+    if (tr.projector(closest->value) == tr.projector(new_node->value)) {
+      DeleteNode(new_node, allocator);
       return {closest, false};
     }
   }
 
-  void* new_memory = tr.allocator.allocate(1);
-  node_type* new_node = new (new_memory) node_type;
-  new_node->value = val;
   if (tr.root == nullptr) {
     tr.root = new_node;
     return {new_node, true};
@@ -253,24 +257,25 @@ std::pair<
   new_node->is_red = true;
   new_node->parent = closest;
 
-  if (tr.comparator(tr.projector(closest->value), tr.projector(val))) {
+  if (tr.comparator(tr.projector(closest->value), tr.projector(new_node->value))) {
     assert(closest->right == nullptr);
     closest->right = new_node;
   } else {
     assert(closest->left == nullptr);
     closest->left = new_node;
   }
-  tree_impl::redblack::ColorFixup(new_node, tr);
+  redblack::ColorFixup(new_node, tr);
   return {new_node, true};
 }
 
 template <std::regular Key, std::regular Value, typename Compare, typename Project,
-  requirements::Allocator Allocate, requirements::Allocator AllocateUse>
-void Erase(redblack::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
-  trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project,
+  trees::requirements::Allocator Allocate, 
+  trees::requirements::Allocator AllocateUse>
+void Erase(trees::redblack::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr, 
+  trees::node_type_t<trees::redblack::rb_tree_t<Key, Value, Compare, Project,
     Allocate>>* node, AllocateUse& allocator) {
   using node_type = 
-    trees::node_type_t<redblack::rb_tree_t<Key, Value, Compare, Project,
+    trees::node_type_t<trees::redblack::rb_tree_t<Key, Value, Compare, Project,
       Allocate>>;
   if (node == nullptr) {
     return;
@@ -295,7 +300,7 @@ void Erase(redblack::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr,
     }
     swap(*node, *tmp);
     using std::swap;
-    ::tree_impl::DeleteNode(node, allocator);
+    DeleteNode(node, allocator);
     tmp->left = nullptr;
     return;
   }
@@ -307,15 +312,15 @@ void Erase(redblack::rb_tree_t<Key, Value, Compare, Project, Allocate>& tr,
     }
     swap(*node, *tmp);
     using std::swap;
-    ::tree_impl::DeleteNode(node, allocator);
+    DeleteNode(node, allocator);
     tmp->right = nullptr;
     return;
   }
   
   if(!node->is_red) {
-    tree_impl::redblack::BlackDelete(tr, node);
+    redblack::BlackDelete(tr, node);
   }
   
-  tree_impl::redblack::CutNodeAway(tr, node, allocator);
+  redblack::CutNodeAway(tr, node, allocator);
 }
 } // namespace trees

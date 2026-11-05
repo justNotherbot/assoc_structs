@@ -65,11 +65,10 @@ public:
   Tree() = default;
 
   template<typename InIter, typename Sentinel>
-  Tree(InIter lt, Sentinel&& rt) {
-    while (lt != rt) {
-      insert(*lt);
-      ++lt;
-    }
+  Tree(InIter lt, Sentinel&& rt, 
+    const compare_type& comparator=compare_type{}) {
+    tree_.comparator = comparator;
+    insert(lt, rt);
   }
 
   Tree(const Tree& other) {
@@ -115,22 +114,87 @@ public:
     return tree_.size == 0U;
   }
 
-  iterator find(const key_type& key) {
+  iterator find(const key_type& key) noexcept {
     return iterator{Find(tree_, key)};
   }
 
-  const_iterator find(const key_type& key) const {
+  const_iterator find(const key_type& key) const noexcept {
     return const_iterator{Find(tree_, key)};
   }
 
-  std::pair<iterator, bool> insert(const value_type& value) noexcept {
-    auto [node_ptr, is_inserted] = Insert(tree_, value);
+  bool contains(const key_type& key) const noexcept {
+    return find(key) != end();
+  }
+
+  size_type count(const key_type& key) const noexcept {
+    return static_cast<size_type>(contains(key));
+  }
+
+  template<typename ... Args>
+  std::pair<iterator, bool> emplace(Args&&... args) {
+    auto [node_ptr, is_inserted] = Insert(tree_, 
+      std::forward<Args>(args)...);
     return std::pair<iterator, bool>{iterator{node_ptr}, is_inserted};
+  }
+
+  template<typename InValue>
+  std::pair<iterator, bool> insert(InValue&& value) {
+    return emplace(std::forward<InValue>(value));
+  }
+
+  template<typename InIterator, typename Sentinel>
+  void insert(InIterator i, Sentinel j) {
+    while (i != j) {
+      Insert(tree_, *i);
+      ++i;
+    }
   }
 
   void erase(const key_type& key) noexcept {
     node_type* node = Find(tree_, key);
     Erase(tree_, node);
+  }
+
+  void erase(iterator it) noexcept {
+    Erase(tree_, it.ptr_);
+  }
+
+  template<typename InIterator, typename Sentinel>
+  void erase(InIterator i, Sentinel j) noexcept {
+    while (i != j) {
+      node_type* node = Find(tree_, *i);
+      Erase(tree_, node);
+      ++i;
+    }
+  }
+
+  iterator upper_bound(const key_type& key) noexcept {
+    return FindBound(tree_, key, false);
+  }
+
+  const_iterator upper_bound(const key_type& key) const noexcept {
+    return FindBound(tree_, key, false);
+  }
+
+  iterator lower_bound(const key_type& key) noexcept {
+    return FindBound(tree_, key, true);
+  }
+
+  const_iterator lower_bound(const key_type& key) const noexcept {
+    return FindBound(tree_, key, true);
+  }
+
+  std::pair<iterator, iterator> equal_range(const key_type& key) noexcept {
+    return std::make_pair(lower_bound(key), upper_bound(key));
+  }
+
+  std::pair<const_iterator, const_iterator> 
+    equal_range(const key_type& key) const noexcept {
+    return std::make_pair(lower_bound(key), upper_bound(key));
+  }
+
+  void clear() noexcept {
+    erase(begin(), end());
   }
 
   friend bool operator==(const Tree& tr_a, const Tree& tr_b) noexcept {

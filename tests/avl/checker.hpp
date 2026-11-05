@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <common_operations.hpp>
-#include "avl.hpp"
+#include <avl/avl.hpp>
 
 namespace tree_check {
 namespace avl {

@@ -1,12 +1,12 @@
 #include <iostream>
 #include <memory>
 
-#include "avl/avl.hpp"
-#include "redblack/rb_tree.hpp"
+#include <avl/avl.hpp>
+#include <redblack/rb_tree.hpp>
 
 #include "avl/checker.hpp"
 #include "redblack/checker.hpp"
-#include "checker.hpp"
+#include "tree_checker.hpp"
 #include "set_tests.hpp"
 #include "test_allocator.hpp"
 
