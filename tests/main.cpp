@@ -1,5 +1,7 @@
 #include <iostream>
+#include <map>
 #include <memory>
+#include <set>
 
 #include <avl/avl.hpp>
 #include <redblack/rb_tree.hpp>
@@ -7,7 +9,7 @@
 #include "avl/checker.hpp"
 #include "redblack/checker.hpp"
 #include "tree_checker.hpp"
-#include "set_tests.hpp"
+#include "container_tests.hpp"
 #include "test_allocator.hpp"
 
 struct NoDefaultConstructible {
@@ -52,11 +54,16 @@ void verify_rb_set_int() {
   tree_check::Tester<
     test_type, trees::Identity<int>, test_verificator> tester;
   tester.VerifyAllCases();
-  using set_tests = tree_check::SetTester<int, std::less<int>, trees::Identity<int>>;
+  using set_tests = tree_check::ContainerTester<
+    my_stl::Set<int, std::less<int>, 
+    tree_check::TestAllocator<int>>, trees::Identity<int>, std::set<int>>;
   set_tests set_tester;
   set_tester.VerifyAllCases();
-  using set_tests_no_default = tree_check::SetTester<
-    NoDefaultConstructible, NdcCompare, NdcFromInt>;
+  using set_tests_no_default = tree_check::ContainerTester<
+    my_stl::Set<NoDefaultConstructible, NdcCompare, 
+    tree_check::TestAllocator<int>>, 
+    NdcFromInt, 
+    std::set<NoDefaultConstructible>>;
   set_tests_no_default no_default_tester;
   no_default_tester.VerifyAllCases();
 }
@@ -70,6 +77,11 @@ void verify_rb_map_int() {
     test_type, tree_check::IntValuedPairGenerator<int>, 
     test_verificator> tester;
   tester.VerifyAllCases();
+  using map_tests_int = tree_check::ContainerTester<
+    my_stl::Map<int, int, std::less<int>, tree_check::TestAllocator<int>>,
+    tree_check::IntValuedPairGenerator<int>, std::map<int, int>>;
+  map_tests_int int_tests;
+  int_tests.VerifyAllCases();
 }
 
 void verify_avl_set_int() {

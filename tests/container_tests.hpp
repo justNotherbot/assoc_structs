@@ -1,6 +1,5 @@
 #pragma once
 
-#include <set>
 #include <vector>
 
 #include <containers.hpp>
@@ -8,18 +7,19 @@
 
 namespace tree_check {
 
-template<typename Key, typename Comp, typename IntToKey>
-class SetTester final {
+template<typename Test, typename IntToKey, typename Control>
+class ContainerTester final {
 public:
-  using test_type = my_stl::Set<Key, Comp, TestAllocator<Key>>;
-  using key_type = typename test_type::key_type;
+  using test_type = Test;
+  using value_type = typename test_type::value_type;
   using converter_type = IntToKey;
+  using control_type = Control;
 
 private:
   converter_type converter_;
 
   template<typename TreeContainer>
-  static bool CompareToSet(TreeContainer& tr, const std::set<key_type>& st) {
+  static bool CompareToSet(TreeContainer& tr, const control_type& st) {
     if(tr.size() != st.size()) {
       return false;
     }
@@ -33,8 +33,8 @@ private:
     return true;
   }
 
-  std::vector<key_type> ToKeyVec(const std::vector<int>& intvec) const {
-    std::vector<key_type> ret;
+  std::vector<value_type> ToKeyVec(const std::vector<int>& intvec) const {
+    std::vector<value_type> ret;
     for(auto i: intvec) {
       ret.push_back(converter_(i));
     }
@@ -44,9 +44,11 @@ private:
   void IterationTest() const noexcept {
     std::vector<int> keys = {1, 9, 5, 2, 6};
     test_type tr;
-    std::set<key_type> set_keys;
+    tr.get_allocator();
+    tr.max_size();
+    control_type set_keys;
     for(auto key: keys) {
-      key_type act_key = converter_(key);
+      value_type act_key = converter_(key);
       auto [iter, was_inserted] = tr.insert(act_key);
       auto [s_iter, s_was_inserted] = set_keys.insert(act_key);
       assert(was_inserted == s_was_inserted);
@@ -57,10 +59,10 @@ private:
 
   void FromVectorTest() const noexcept {
     std::vector<int> int_vec = {5, 2, 13, 42, 21, 32};
-    std::vector<key_type> key_vec = ToKeyVec(int_vec);
+    std::vector<value_type> key_vec = ToKeyVec(int_vec);
     assert(int_vec.size() == key_vec.size());
     test_type tr{key_vec.begin(), key_vec.end()};
-    std::set<key_type> target{key_vec.begin(), key_vec.end()};
+    control_type target{key_vec.begin(), key_vec.end()};
     assert(CompareToSet(tr, target));
     const test_type& cref = tr;
     assert(CompareToSet(cref, target));
@@ -68,11 +70,11 @@ private:
 
   void CopyTest() const noexcept {
     std::vector<int> int_vec = {1, 89, 211, -3, 344, 45, 3};
-    std::vector<key_type> key_vec = ToKeyVec(int_vec);
+    std::vector<value_type> key_vec = ToKeyVec(int_vec);
     test_type tr{key_vec.begin(), key_vec.end()};
     test_type tr1 = tr;
     assert(tr1 == tr);
-    std::set<key_type> target{key_vec.begin(), key_vec.end()};
+    control_type target{key_vec.begin(), key_vec.end()};
     assert(CompareToSet(tr, target));
     assert(CompareToSet(tr1, target));
     test_type tr2;
@@ -92,12 +94,10 @@ private:
   void EraseTest() const noexcept {
     std::vector<int> int_vec = {2, 54, 4, 9};
     std::vector<int> delete_vec = {2, 4, 6, 8};
-    std::vector<int> res_vec = {54, 9};
-    std::vector<key_type> key_vec = ToKeyVec(int_vec);
+    std::vector<value_type> key_vec = ToKeyVec(int_vec);
     test_type tr{key_vec.begin(), key_vec.end()};
-    std::vector<key_type> delete_keys = ToKeyVec(delete_vec);
-    tr.erase(delete_keys.begin(), delete_keys.end());
-    std::vector<key_type> res_key = ToKeyVec(res_vec);
+    tr.erase(delete_vec.begin(), delete_vec.end());
+    std::vector<value_type> res_key = {key_vec[1], key_vec[3]};
     test_type res_tr{res_key.begin(), res_key.end()};
     assert(res_tr == tr);
     assert(res_tr.count(54) && res_tr.count(9) && 

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 
+#include <initializer_list>
 #include <memory>
 #include <utility>
 
@@ -62,6 +63,16 @@ public:
     swap(t_a.tree_, t_b.tree_);
   }
 
+  allocator_type get_allocator() const noexcept {
+    return tree_.allocator;
+  }
+
+  size_type max_size() const noexcept {
+    return 
+      std::allocator_traits<allocator_type>::max_size(tree_.allocator) / 
+        sizeof(node_type);
+  }
+
   Tree() = default;
 
   template<typename InIter, typename Sentinel>
@@ -69,6 +80,12 @@ public:
     const compare_type& comparator=compare_type{}) {
     tree_.comparator = comparator;
     insert(lt, rt);
+  }
+
+  Tree(const std::initializer_list<value_type>& il, 
+    const compare_type& comparator=compare_type{}) {
+    tree_.comparator = comparator;
+    insert(il.begin(), il.end());
   }
 
   Tree(const Tree& other) {
@@ -98,11 +115,19 @@ public:
     return const_iterator{tree_.begin};
   }
 
+  const_iterator cbegin() const noexcept {
+    return const_iterator{tree_.begin};
+  }
+
   iterator end() noexcept {
     return iterator{};
   }
 
   const_iterator end() const noexcept {
+    return const_iterator{};
+  }
+
+  const_iterator cend() const noexcept {
     return const_iterator{};
   }
 
