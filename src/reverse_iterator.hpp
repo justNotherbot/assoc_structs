@@ -18,7 +18,7 @@ public:
 
   explicit ReverseIterator(Iterator iter) 
     noexcept(std::is_nothrow_copy_constructible<Iterator>::value) : 
-    iter_{--iter} {}
+    iter_{iter} {}
 
   ReverseIterator(const ReverseIterator& other) 
     noexcept(std::is_nothrow_copy_constructible<Iterator>::value) : 
@@ -84,13 +84,13 @@ public:
 
   ReverseIterator operator++(int) {
     ReverseIterator tmp{*this};
-    --(*this);
+    ++(*this);
     return tmp;
   }
 
   ReverseIterator operator--(int) {
     ReverseIterator tmp{*this};
-    ++(*this);
+    --(*this);
     return tmp;
   }
 
