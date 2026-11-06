@@ -30,6 +30,14 @@ private:
       }
       ++st_it;
     }
+    auto st_rev_it = st.crbegin();
+    auto tr_rev_it = tr.crbegin();
+    while (tr.crend() != tr_rev_it) {
+      assert(*st_rev_it == *tr_rev_it);
+      st_rev_it++;
+      tr_rev_it++;
+    }
+    
     return true;
   }
 

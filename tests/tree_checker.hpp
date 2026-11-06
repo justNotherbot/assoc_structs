@@ -138,6 +138,40 @@ private:
     }
   }
 
+  void VerifyNextPrev() noexcept {
+    const unsigned max_tests = 1000;
+    unsigned curr_tests = 100 + std::max(1U, 
+      static_cast<unsigned>(std::rand()) % max_tests);
+    for(unsigned i = 0U; i < curr_tests; ++i) {
+      unsigned curr_queries = 500 + (static_cast<unsigned>(std::rand()) % 20);
+      test_type tr;
+      std::set<test_key_type> inserted_keys;
+      for(unsigned j = 0U; j < curr_queries; ++j) {
+        int rand_val = rand();
+        inserted_keys.insert(rand_val);
+        trees::Insert(tr, value_generator_(rand_val));
+      }
+      test_node_type* curr_node = tr.begin;
+      auto set_iter = inserted_keys.begin();
+      assert(tr.size == inserted_keys.size());
+      for(unsigned j = 0; j < tr.size; ++j) {
+        assert(curr_node != nullptr && 
+          tr.projector(curr_node->value) == *set_iter);
+        ++set_iter;
+        curr_node = trees::FindNextNode(curr_node);
+      }
+      auto iter_rbegin = inserted_keys.rbegin();
+      curr_node = tr.rbegin;
+      for(unsigned j = 0; j < tr.size; ++j) {
+        assert(curr_node != nullptr && 
+          tr.projector(curr_node->value) == *iter_rbegin);
+        curr_node = trees::FindNextNode(curr_node, true);
+        ++iter_rbegin;
+      }
+      trees::Destroy(tr);
+    }
+  }
+
   void EraseExample1() noexcept {
     test_type tr;
     Verify(tr);
@@ -286,6 +320,7 @@ public:
     std::srand(std::time(0));
     VerifyExamples();
     VerifyInsert();
+    VerifyNextPrev();
     VerifyErase();
     VerifyBounds();
   }

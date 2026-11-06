@@ -4,9 +4,11 @@
 
 #include <initializer_list>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 #include "common_operations.hpp"
+#include "reverse_iterator.hpp"
 #include "tree_common.hpp"
 #include "tree_wrapper.hpp"
 
@@ -23,27 +25,18 @@ public:
 private:
   tree_wrapper_t<ImplType> tree_;
 public:
-  template<typename Node>
+  template<typename Node, typename Value>
   class Iterator final {
     Node* ptr_ = nullptr;
   public:
-    Iterator() = default;
+    using value_type = Value;
+    using reference = std::add_lvalue_reference_t<value_type>;
+    using difference_type = std::ptrdiff_t;
+    using pointer = std::add_pointer_t<value_type>;
+    using iterator_category = std::bidirectional_iterator_tag;
 
-    Iterator(Node* ptr) : ptr_{ptr} {}
-
-    auto operator*() {
-      return ptr_->value;
-    }
-
-    Iterator& operator++() {
-      ptr_ = FindNextNode(ptr_);
-      return *this;
-    }
-
-    Iterator operator++(int) {
-      Iterator tmp{*this};
-      ++(*this);
-      return tmp;
+    friend void swap(Iterator& it_a, Iterator& it_b) noexcept {
+      std::swap(it_a.ptr_, it_b.ptr_);
     }
 
     friend bool operator==(const Iterator& it_a, const Iterator& it_b) noexcept {
@@ -53,13 +46,45 @@ public:
     friend bool operator!=(const Iterator& it_a, const Iterator& it_b) noexcept {
       return !(it_a == it_b);
     }
+
+    Iterator() = default;
+
+    explicit Iterator(Node* ptr) : ptr_{ptr} {}
+
+    reference operator*() {
+      return ptr_->value;
+    }
+
+    Iterator& operator++() noexcept {
+      ptr_ = FindNextNode(ptr_);
+      return *this;
+    }
+
+    Iterator operator++(int) noexcept {
+      Iterator tmp{*this};
+      ++(*this);
+      return tmp;
+    }
+
+    Iterator& operator--() noexcept {
+      ptr_ = FindNextNode(ptr_, true);
+      return *this;
+    }
+
+    Iterator operator--(int) noexcept {
+      Iterator tmp{*this};
+      --(*this);
+      return tmp;
+    }
   };
 
-  using iterator = Iterator<node_type>;
-  using const_iterator = Iterator<const node_type>;
+  using iterator = Iterator<node_type, value_type>;
+  using const_iterator = Iterator<const node_type, const value_type>;
+  using reverse_iterator = my_stl::ReverseIterator<iterator>;
+  using const_reverse_iterator = my_stl::ReverseIterator<const_iterator>;
   using size_type = std::size_t;
 
-  friend void swap(Tree& t_a, Tree& t_b) {
+  friend void swap(Tree& t_a, Tree& t_b) noexcept {
     swap(t_a.tree_, t_b.tree_);
   }
 
@@ -96,7 +121,12 @@ public:
     swap(tmp, *this);
   }
 
-  Tree(Tree&& other) : tree_{other.tree_} {}
+  Tree(Tree&& other) {
+    if(std::addressof(other) == this) {
+      return;
+    }
+    swap(*this, other);
+  }
 
   Tree& operator=(const Tree& other) {
     if(std::addressof(other) == this) {
@@ -129,6 +159,30 @@ public:
 
   const_iterator cend() const noexcept {
     return const_iterator{};
+  }
+
+  reverse_iterator rbegin() noexcept {
+    return reverse_iterator{iterator{tree_.rbegin}};
+  }
+
+  const_reverse_iterator rbegin() const noexcept {
+    return const_reverse_iterator{const_iterator{tree_.rbegin}};
+  }
+
+  const_reverse_iterator crbegin() const noexcept {
+    return const_reverse_iterator{const_iterator{tree_.rbegin}};
+  }
+
+  reverse_iterator rend() noexcept {
+    return reverse_iterator{iterator{}};
+  }
+
+  const_reverse_iterator rend() const noexcept {
+    return const_reverse_iterator{const_iterator{}};
+  }
+
+  const_reverse_iterator crend() const noexcept {
+    return const_reverse_iterator{const_iterator{}};
   }
 
   size_type size() const noexcept {

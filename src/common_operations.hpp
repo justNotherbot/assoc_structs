@@ -50,21 +50,25 @@ const typename Tree::node_type* FindBound(const Tree& tr, Key&& key,
 }
 
 template<typename Node>
-Node* FindNextNode(Node* node) {
+Node* FindNextNode(Node* node, bool find_prev=false) {
   if(node == nullptr) {
     return nullptr;
   }
-  if(node->right == nullptr) {
+  auto left_ptr = tree_impl::RetrieveLinkFromNode<Node>(
+    !find_prev);
+  auto right_ptr = tree_impl::RetrieveLinkFromNode<Node>(
+    find_prev);
+  if(node->*right_ptr == nullptr) {
     Node* prev = node;
     node = node->parent;
-    while (node != nullptr && node->right == prev) {
+    while (node != nullptr && node->*right_ptr == prev) {
       prev = node;
       node = node->parent;
     }
   } else {
-    node = node->right;
-    while (node->left != nullptr) {
-      node = node->left;
+    node = node->*right_ptr;
+    while (node->*left_ptr != nullptr) {
+      node = node->*left_ptr;
     }
   }
   return node;
@@ -85,9 +89,13 @@ auto Insert(tree_wrapper_t<Tree>& tr,
   if(res.second) {
     if(tr.begin == nullptr) {
       tr.begin = res.first;
+      tr.rbegin = res.first;
     }
     while (tr.begin->left != nullptr) {
       tr.begin = tr.begin->left;
+    }
+    while(tr.rbegin->right != nullptr) {
+      tr.rbegin = tr.rbegin->right;
     }
     
     ++tr.size;
@@ -112,6 +120,9 @@ void Erase(tree_wrapper_t<Tree>& tr, typename Tree::node_type* node) {
   }
   if(node == tr.begin) {
     tr.begin = FindNextNode(tr.begin);
+  }
+  if(node == tr.rbegin) {
+    tr.rbegin = FindNextNode(tr.rbegin, true);
   }
   tree_impl::Erase<key_type, value_type, compare_type, project_type,
     allocator_type, actual_allocator_type>(

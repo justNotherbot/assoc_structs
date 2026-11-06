@@ -47,7 +47,7 @@ concept Allocator = requires(T a,
 namespace tree_impl {
 
 template<typename Node>
-Node* Node::* RetrieveLinkFromNode(bool is_left) noexcept {
+auto RetrieveLinkFromNode(bool is_left) noexcept {
   if(is_left) {
     return &Node::left;
   }

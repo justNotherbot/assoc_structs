@@ -7,10 +7,11 @@
 #include <redblack/rb_tree.hpp>
 
 #include "avl/checker.hpp"
-#include "redblack/checker.hpp"
-#include "tree_checker.hpp"
 #include "container_tests.hpp"
+#include "redblack/checker.hpp"
+#include "set_specific.hpp"
 #include "test_allocator.hpp"
+#include "tree_checker.hpp"
 
 struct NoDefaultConstructible {
   int val;
@@ -112,5 +113,7 @@ int main() {
   verify_avl_set_int();
   verify_avl_map_int();
   std::cout << "Avl tests passed\n";
+  my_stl_tests::SetSpecificTests set_tests;
+  set_tests.VerifyAllCases();
   return 0;
 }
